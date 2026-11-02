@@ -40,10 +40,8 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close the mobile sheet whenever the route changes.
-  React.useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+  // The mobile Sheet closes itself from each control's onClick — no
+  // route-change effect needed (avoids a sync setState-in-effect).
 
   function isActive(href: string) {
     if (href.startsWith("/#")) return false;
@@ -153,10 +151,15 @@ export function Navbar() {
                   render={<Link href="/login" />}
                   variant="outline"
                   className="h-11 w-full"
+                  onClick={() => setOpen(false)}
                 >
                   Log in
                 </Button>
-                <Button render={<Link href="/register" />} className="h-11 w-full rounded-full">
+                <Button
+                  render={<Link href="/register" />}
+                  className="h-11 w-full rounded-full"
+                  onClick={() => setOpen(false)}
+                >
                   Create account
                 </Button>
               </div>
