@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { NewsletterForm } from "@/components/layout/newsletter-form";
+import { CurrentYear } from "@/components/shared/current-year";
 import { categories } from "@/data/categories";
 import { cn } from "cn";
 
@@ -135,7 +136,7 @@ export function Footer() {
         {/* ---------- Legal ---------- */}
         <div className="flex flex-col items-start justify-between gap-4 border-t border-border pt-7 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>
-            © {new Date().getFullYear()} StudioSpace. All rights reserved.
+            © <CurrentYear /> StudioSpace. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link href="/#about" className="transition-colors hover:text-foreground">
