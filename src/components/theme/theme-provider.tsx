@@ -2,7 +2,57 @@
 
 import * as React from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
+
+const STORAGE_KEY = "studiospace-theme";
+const listeners = new Set<() => void>();
+
+function readTheme(): Theme {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {
+    /* storage unavailable */
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function applyTheme(theme: Theme) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+}
+
+/**
+ * External store so theme reads subscribe instead of triggering
+ * setState-in-effect cascades. The inline script in the root layout applies
+ * the persisted theme before first paint; this hydrates React's view of it.
+ */
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY) listener();
+  };
+  const onMedia = () => listener();
+
+  window.addEventListener("storage", onStorage);
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", onMedia);
+
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .removeEventListener("change", onMedia);
+  };
+}
+
+function notify() {
+  listeners.forEach((l) => l());
+}
 
 const ThemeContext = React.createContext<{
   theme: Theme;
@@ -14,50 +64,31 @@ const ThemeContext = React.createContext<{
   toggleTheme: () => {},
 });
 
-const STORAGE_KEY = "studiospace-theme";
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Default to light during SSR; the inline script in <head> sets the real
-  // value before paint, and this syncs state after hydration.
-  const [theme, setThemeState] = React.useState<Theme>("light");
+  const theme = React.useSyncExternalStore(
+    subscribe,
+    readTheme,
+    () => "light" as Theme,
+  );
 
+  // Keep the DOM class in sync whenever the resolved theme changes.
   React.useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    const initial: Theme =
-      stored === "dark" || stored === "light"
-        ? stored
-        : prefersDark
-          ? "dark"
-          : "light";
-    setThemeState(initial);
-    document.documentElement.classList.toggle("dark", initial === "dark");
-  }, []);
+    applyTheme(theme);
+  }, [theme]);
 
   const setTheme = React.useCallback((next: Theme) => {
-    setThemeState(next);
-    document.documentElement.classList.toggle("dark", next === "dark");
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* storage unavailable — theme still applies for this session */
     }
+    applyTheme(next);
+    notify();
   }, []);
 
   const toggleTheme = React.useCallback(() => {
-    setThemeState((current) => {
-      const next: Theme = current === "dark" ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", next === "dark");
-      try {
-        window.localStorage.setItem(STORAGE_KEY, next);
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, []);
+    setTheme(readTheme() === "dark" ? "light" : "dark");
+  }, [setTheme]);
 
   const value = React.useMemo(
     () => ({ theme, setTheme, toggleTheme }),
