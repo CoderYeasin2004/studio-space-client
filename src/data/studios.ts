@@ -507,7 +507,7 @@ export const studios: Studio[] = [
     capacity: 7,
     size: 60,
     featured: false,
-    status: "live",
+    status: "draft",
     images: [
       "1481277542470-605612bd2d61",
       "1497366811353-6870744d04b2",
