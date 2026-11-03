@@ -95,12 +95,18 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
-    api.on("reInit", onSelect)
-    api.on("select", onSelect)
+
+    // The first sync is deferred out of the effect body so state is never
+    // written during the effect itself; later syncs arrive as events.
+    const frame = requestAnimationFrame(() => onSelect(api))
+    const sync = () => onSelect(api)
+    api.on("reInit", sync)
+    api.on("select", sync)
 
     return () => {
-      api?.off("select", onSelect)
+      cancelAnimationFrame(frame)
+      api.off("reInit", sync)
+      api.off("select", sync)
     }
   }, [api, onSelect])
 

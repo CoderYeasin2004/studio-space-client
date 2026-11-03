@@ -1,10 +1,14 @@
-"use client";
-
 /**
- * Copyright year. Reads the clock on the client so the static prerendered
- * shell never depends on the current time (`cacheComponents` rejects
- * `new Date()` inside prerendered Server Components).
+ * Copyright year. The clock is read once inside a cached function so the
+ * prerendered shell holds a frozen value — `cacheComponents` rejects a bare
+ * `new Date()` while statically rendering the page.
  */
-export function CurrentYear() {
-  return <>{new Date().getFullYear()}</>;
+async function readYear() {
+  "use cache";
+  return new Date().getFullYear();
+}
+
+export async function CurrentYear() {
+  const year = await readYear();
+  return <>{year}</>;
 }
