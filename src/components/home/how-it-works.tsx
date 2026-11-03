@@ -47,7 +47,7 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       aria-labelledby="how-heading"
-      className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28"
+      className="mx-auto max-w-360 px-5 py-20 sm:px-8 lg:px-12 lg:py-28"
     >
       <SectionHeader
         eyebrow="How it works"
