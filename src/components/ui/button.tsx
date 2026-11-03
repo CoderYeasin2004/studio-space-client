@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
@@ -39,15 +40,34 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * Whether the element supplied via `render` is a real `<button>`. Base UI
+ * needs to know: it applies `type="button"` to native buttons and `role`
+ * + key handling to everything else. Guessing wrong logs a dev warning on
+ * every render, so intrinsic tags and our own Button are treated as native
+ * and components such as `next/link` are not.
+ */
+function rendersNativeButton(render: ButtonPrimitive.Props["render"]): boolean {
+  // No replacement element — Base UI draws its own <button>.
+  if (render == null) return true
+  if (!React.isValidElement(render)) return false
+  if (typeof render.type === 'string') return render.type === 'button'
+  return render.type === Button
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  render,
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      render={render}
+      nativeButton={nativeButton ?? rendersNativeButton(render)}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
