@@ -18,7 +18,7 @@ const icons: Record<string, LucideIcon> = {
 };
 
 /** Vertical activity timeline for the dashboard. */
-export function ActivityFeed({ events }: { events: ActivityEvent[] }) {
+export const ActivityFeed = ({ events }: { events: ActivityEvent[] }) => {
   return (
     <ol className="relative flex flex-col">
       {events.map((event, index) => {
@@ -53,4 +53,4 @@ export function ActivityFeed({ events }: { events: ActivityEvent[] }) {
       })}
     </ol>
   );
-}
+};

@@ -19,7 +19,7 @@ const icons: Record<string, LucideIcon> = {
 };
 
 /** One KPI tile on the dashboard overview. */
-export function StatCard({ stat }: { stat: DashboardStat }) {
+export const StatCard = ({ stat }: { stat: DashboardStat }) => {
   const Icon = icons[stat.icon] ?? CalendarIcon;
   const Trend =
     stat.trend === "up"
@@ -54,4 +54,4 @@ export function StatCard({ stat }: { stat: DashboardStat }) {
       </div>
     </div>
   );
-}
+};

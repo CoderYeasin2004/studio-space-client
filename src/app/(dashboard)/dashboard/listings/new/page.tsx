@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 };
 
 /** Create a new studio listing. */
-export default function NewListingPage() {
+const NewListingPage = () => {
   return (
     <div className="flex flex-col gap-7">
       <div>
@@ -23,4 +23,6 @@ export default function NewListingPage() {
       <ListingForm />
     </div>
   );
-}
+};
+
+export default NewListingPage;

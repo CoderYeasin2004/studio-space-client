@@ -25,7 +25,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * validates the shape of the input, confirms with a toast and forwards to the
  * dashboard. Swap `handleSubmit` for a real mutation when a backend lands.
  */
-export function AuthForm({ mode }: { mode: Mode }) {
+export const AuthForm = ({ mode }: { mode: Mode }) => {
   const router = useRouter();
   const isLogin = mode === "login";
 
@@ -37,7 +37,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [terms, setTerms] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
-  function validate(): boolean {
+  const validate = (): boolean => {
     let ok = true;
 
     if (!isLogin && name.value.trim().length < 2) {
@@ -71,9 +71,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
     }
 
     return ok;
-  }
+  };
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!validate()) return;
 
@@ -91,7 +91,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       });
       router.push("/dashboard");
     }, 550);
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
@@ -299,4 +299,4 @@ export function AuthForm({ mode }: { mode: Mode }) {
       </p>
     </form>
   );
-}
+};

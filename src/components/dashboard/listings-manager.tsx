@@ -12,7 +12,6 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { img } from "@/lib/images";
-import { bookings } from "@/data/bookings";
 import { categoryLabels } from "@/data/categories";
 import type { ListingStatus, Studio } from "@/types/studio";
 import { StatusBadge } from "./status-badge";
@@ -39,14 +38,17 @@ import { toast } from "@/components/ui/toast";
 
 /**
  * Client-side listings manager: renders the host's listings, allows a
- * mock pause/resume and a confirmed delete (local state only — swap for
- * API mutations later).
+ * pause/resume and a confirmed delete.
+ *
+ * fetch data here — `listings` is passed in from the listings page (already
+ * wired for dynamic data). The two mutations below still only touch local
+ * state; swap `setItems` for your API calls when the backend lands.
  */
-export function ListingsManager({ listings }: { listings: Studio[] }) {
+export const ListingsManager = ({ listings }: { listings: Studio[] }) => {
   const [items, setItems] = React.useState<Studio[]>(listings);
   const [deleting, setDeleting] = React.useState<Studio | null>(null);
 
-  function confirmDelete() {
+  const confirmDelete = () => {
     if (!deleting) return;
     setItems((prev) => prev.filter((s) => s.id !== deleting.id));
     toast.add({
@@ -55,9 +57,9 @@ export function ListingsManager({ listings }: { listings: Studio[] }) {
       description: `${deleting.name} was removed from your listings.`,
     });
     setDeleting(null);
-  }
+  };
 
-  function togglePause(studio: Studio) {
+  const togglePause = (studio: Studio) => {
     const next: ListingStatus = studio.status === "live" ? "paused" : "live";
     setItems((prev) =>
       prev.map((s) => (s.id === studio.id ? { ...s, status: next } : s)),
@@ -70,14 +72,14 @@ export function ListingsManager({ listings }: { listings: Studio[] }) {
           ? `${studio.name} is visible in Explore again.`
           : `${studio.name} is hidden from Explore until you resume it.`,
     });
-  }
+  };
 
   if (items.length === 0) {
     return (
       <EmptyState
         icon={EyeOffIcon}
-        title="No listings left"
-        description="You've deleted every listing. Create a new one to start taking bookings again."
+        title="No listings yet"
+        description="Nothing to show here yet. Create your first listing and it will appear here with its status and bookings."
         action={
           <Button
             render={<Link href="/dashboard/listings/new" />}
@@ -93,13 +95,14 @@ export function ListingsManager({ listings }: { listings: Studio[] }) {
   return (
     <div className="flex flex-col gap-3.5">
       {items.map((studio) => {
-        const bookingCount = bookings.filter(
-          (b) => b.studioId === studio.id,
-        ).length;
+        // fetch data here — per-listing booking count should come from your
+        // API (e.g. `studio.bookingCount`). It reads the mock bookings table
+        // today, which no longer matches these listings, so it starts at 0.
+        const bookingCount: number = 0;
 
         return (
           <article
-            key={studio.id}
+            key={studio._id ?? studio.id ?? studio.slug}
             className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-primary/30 sm:flex-row sm:items-center"
           >
             {/* Thumbnail */}
@@ -107,14 +110,22 @@ export function ListingsManager({ listings }: { listings: Studio[] }) {
               href={`/studios/${studio.slug}`}
               className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:aspect-video sm:w-40"
             >
-              <Image
-                src={img(studio.images[0], "thumb")}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 100vw, 160px"
-                className="zoom-media object-cover"
-              />
-            </Link>
+ {studio.images?.[0] ? (
+  <Image
+    src={studio.images[0]}
+    alt={studio.name}
+    fill
+    unoptimized
+    sizes="(max-width: 640px) 100vw, 160px"
+    className="zoom-media object-cover"
+  />
+) : (
+  <div className="flex h-full w-full items-center justify-center bg-muted">
+    <span className="text-sm text-muted-foreground">
+      No image available
+    </span>
+  </div>
+)}     </Link>
 
             {/* Body */}
             <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -133,7 +144,7 @@ export function ListingsManager({ listings }: { listings: Studio[] }) {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <StarIcon className="size-3.5 fill-current text-amber-500" />
-                  {studio.rating.toFixed(1)}
+                  {(studio.rating ?? 0).toFixed(1)}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <UsersIcon className="size-3.5" />
@@ -239,4 +250,4 @@ export function ListingsManager({ listings }: { listings: Studio[] }) {
       </AlertDialog>
     </div>
   );
-}
+};

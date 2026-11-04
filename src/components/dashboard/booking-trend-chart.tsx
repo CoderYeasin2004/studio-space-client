@@ -13,11 +13,11 @@ const config = {
 } satisfies ChartConfig;
 
 /** Monthly booking trend — area chart with a soft brand gradient. */
-export function BookingTrendChart({
+export const BookingTrendChart = ({
   data,
 }: {
   data: { month: string; bookings: number }[];
-}) {
+}) => {
   return (
     <ChartContainer
       config={config}
@@ -58,4 +58,4 @@ export function BookingTrendChart({
       </AreaChart>
     </ChartContainer>
   );
-}
+};

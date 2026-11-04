@@ -42,7 +42,7 @@ const steps = [
  * Four-step explainer. Numbered rules connect the steps on desktop like a
  * contact sheet; they stack with left rules on mobile.
  */
-export function HowItWorks() {
+export const HowItWorks = () => {
   return (
     <section
       id="how-it-works"
@@ -106,4 +106,4 @@ export function HowItWorks() {
       </ol>
     </section>
   );
-}
+};

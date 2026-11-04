@@ -8,17 +8,17 @@ import { bookedDates, dayOffset } from "@/data/availability";
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const MAX_OFFSET = 2; // mock availability covers ~60 days
 
-function toIso(year: number, month: number, day: number): string {
+const toIso = (year: number, month: number, day: number): string => {
   const m = String(month + 1).padStart(2, "0");
   const d = String(day).padStart(2, "0");
   return `${year}-${m}-${d}`;
-}
+};
 
 /**
  * Two-month-ahead availability grid. Booked and past days are disabled;
  * selection is controlled by the parent booking card.
  */
-export function AvailabilityCalendar({
+export const AvailabilityCalendar = ({
   studioId,
   selected,
   onSelect,
@@ -26,7 +26,7 @@ export function AvailabilityCalendar({
   studioId: string;
   selected: string;
   onSelect: (iso: string) => void;
-}) {
+}) => {
   const [offset, setOffset] = React.useState(0);
 
   const booked = React.useMemo(() => new Set(bookedDates(studioId)), [studioId]);
@@ -147,4 +147,4 @@ export function AvailabilityCalendar({
       </div>
     </div>
   );
-}
+};

@@ -14,11 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// fetch data here — this component reads the studio catalogue directly.
+
 /**
  * Bookings table shared by the dashboard overview and the bookings page.
  * Rows deep-link to the studio; statuses are mock-data driven.
  */
-export function BookingTable({ bookings }: { bookings: Booking[] }) {
+export const BookingTable = ({ bookings }: { bookings: Booking[] }) => {
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <Table className="min-w-[640px]">
@@ -93,4 +95,4 @@ export function BookingTable({ bookings }: { bookings: Booking[] }) {
       </Table>
     </div>
   );
-}
+};

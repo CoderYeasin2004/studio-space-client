@@ -21,7 +21,7 @@ const stats = [
  * column, cinematic imagery bleeding off the right edge, plus a floating
  * studio card for depth. Deliberately not a centred hero.
  */
-export function Hero() {
+export const Hero = () => {
   return (
     <section className="relative overflow-hidden pt-10 pb-16 sm:pt-14 lg:pt-16 lg:pb-24">
       {/* Soft brand wash — kept subtle so purple stays an accent */}
@@ -138,4 +138,4 @@ export function Hero() {
       </div>
     </section>
   );
-}
+};

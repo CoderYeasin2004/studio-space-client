@@ -2,11 +2,17 @@ import type {
   ActivityEvent,
   Booking,
   DashboardStat,
-  Studio,
   UserProfile,
 } from "@/types/studio";
 import { studios } from "./studios";
 
+/**
+ * fetch data here — bookings, profile, KPIs and the trend chart read from
+ * this file. Listings deliberately do NOT: they are fetched on the listings
+ * pages so they can stay dynamic. Swap the arrays below for API responses
+ * (or move each one into the page that renders it) and grep
+ * "fetch data here" for every call site.
+ */
 export const bookings: Booking[] = [
   {
     id: "bk-1041",
@@ -94,11 +100,6 @@ export const upcomingBookings = bookings.filter(
 
 export const recentBookings = bookings.filter(
   (b) => b.status === "completed" || b.status === "cancelled",
-);
-
-/** Listings owned by the demo host — a subset of the catalogue. */
-export const myListings: Studio[] = studios.filter((s) =>
-  ["st-01", "st-03", "st-06", "st-08", "st-12"].includes(s.id),
 );
 
 export const favoriteStudioIds = ["st-02", "st-04", "st-10", "st-05"];

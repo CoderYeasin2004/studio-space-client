@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** Log in screen — mock submission only, no auth backend is wired up. */
-export default function LoginPage() {
+const LoginPage = () => {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col gap-2.5">
@@ -35,4 +35,6 @@ export default function LoginPage() {
       </p>
     </div>
   );
-}
+};
+
+export default LoginPage;

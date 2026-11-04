@@ -72,7 +72,7 @@ export const reviews: Review[] = [
 ];
 
 /** Deterministically picks three reviews for a studio id. */
-export function reviewsFor(studioId: string): Review[] {
+export const reviewsFor = (studioId: string): Review[] => {
   const seed = studioId.charCodeAt(studioId.length - 1) % reviews.length;
   return [0, 1, 2].map((i) => reviews[(seed + i) % reviews.length]);
-}
+};

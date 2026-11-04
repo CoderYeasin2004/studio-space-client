@@ -15,13 +15,13 @@ const listingStyles: Record<ListingStatus, string> = {
 };
 
 /** Pill badge for booking and listing statuses. */
-export function StatusBadge({
+export const StatusBadge = ({
   status,
   kind = "booking",
 }: {
   status: BookingStatus | ListingStatus;
   kind?: "booking" | "listing";
-}) {
+}) => {
   const styles =
     kind === "booking"
       ? bookingStyles[status as BookingStatus]
@@ -41,4 +41,4 @@ export function StatusBadge({
       {status}
     </span>
   );
-}
+};

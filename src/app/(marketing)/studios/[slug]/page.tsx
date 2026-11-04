@@ -21,15 +21,15 @@ import { StudioCard } from "@/components/studio/studio-card";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Badge } from "@/components/ui/badge";
 
-export async function generateStaticParams() {
+export const generateStaticParams = async () => {
   return studios.map((studio) => ({ slug: studio.slug }));
-}
+};
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+}): Promise<Metadata> => {
   "use cache";
   const { slug } = await params;
   const studio = getStudioBySlug(slug);
@@ -38,14 +38,15 @@ export async function generateMetadata({
     title: `${studio.name} — StudioSpace`,
     description: studio.description,
   };
-}
+};
 
-export default async function StudioDetailsPage({
+const StudioDetailsPage = async ({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}) {
+}) => {
   const { slug } = await params;
+  // fetch data here — replace getStudioBySlug(slug) with a real API lookup.
   const studio = getStudioBySlug(slug);
   if (!studio) notFound();
 
@@ -326,4 +327,6 @@ export default async function StudioDetailsPage({
       </div>
     </article>
   );
-}
+};
+
+export default StudioDetailsPage;

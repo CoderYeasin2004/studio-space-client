@@ -3,6 +3,10 @@ import type { Studio } from "@/types/studio";
 /**
  * Frontend-only mock catalogue.
  * Shaped so a real API response can replace it 1:1 later.
+ *
+ * fetch data here — swap this static array for `await fetch(...)` (or your
+ * API helper) and the whole app reads from it. `grep -rn "fetch data here" src`
+ * lists every other spot that still needs wiring.
  */
 export const studios: Studio[] = [
   {
@@ -537,13 +541,13 @@ export const studios: Studio[] = [
 
 export const featuredStudios = studios.filter((s) => s.featured);
 
-export function getStudioBySlug(slug: string): Studio | undefined {
+export const getStudioBySlug = (slug: string): Studio | undefined => {
   return studios.find((s) => s.slug === slug);
-}
+};
 
-export function getRelatedStudios(studio: Studio, limit = 3): Studio[] {
+export const getRelatedStudios = (studio: Studio, limit = 3): Studio[] => {
   return studios
     .filter((s) => s.id !== studio.id && s.category === studio.category)
     .concat(studios.filter((s) => s.id !== studio.id && s.category !== studio.category))
     .slice(0, limit);
-}
+};

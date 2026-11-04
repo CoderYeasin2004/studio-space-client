@@ -7,6 +7,11 @@ export const metadata: Metadata = {
 };
 
 /** Booking history and management — data is mocked, state lives client-side. */
-export default function BookingsPage() {
+
+
+const BookingsPage = () => {
+  // fetch data here — replace the mock `bookings` import with an API call.
   return <BookingsView bookings={bookings} />;
-}
+};
+
+export default BookingsPage;

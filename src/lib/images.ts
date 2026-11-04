@@ -17,6 +17,6 @@ const SIZES: Record<ImgSize, string> = {
 };
 
 /** Builds a sized, cropped Unsplash URL from a bare photo id. */
-export function img(id: string, size: ImgSize = "card"): string {
+export const img = (id: string, size: ImgSize = "card"): string => {
   return `https://images.unsplash.com/photo-${id}?auto=format&quality=82&${SIZES[size]}`;
-}
+};

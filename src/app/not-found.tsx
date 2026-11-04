@@ -13,7 +13,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
  * Global 404. Self-contained (renders inside the root layout only, so it
  * carries its own header rather than the marketing navbar/footer).
  */
-export default function NotFound() {
+const NotFound = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex h-16 items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
@@ -104,4 +104,6 @@ export default function NotFound() {
       </main>
     </div>
   );
-}
+};
+
+export default NotFound;

@@ -17,7 +17,7 @@ interface SectionHeaderProps {
  * Consistent editorial section header: eyebrow, expressive title,
  * optional supporting copy and an optional trailing link.
  */
-export function SectionHeader({
+export const SectionHeader = ({
   eyebrow,
   title,
   description,
@@ -25,7 +25,7 @@ export function SectionHeader({
   align = "start",
   tone = "default",
   className,
-}: SectionHeaderProps) {
+}: SectionHeaderProps) => {
   const onDark = tone === "on-dark";
 
   return (
@@ -95,4 +95,4 @@ export function SectionHeader({
       )}
     </div>
   );
-}
+};

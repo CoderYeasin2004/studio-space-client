@@ -2,24 +2,24 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
-function subscribe(callback: () => void) {
+const subscribe = (callback: () => void) => {
   const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
   mql.addEventListener("change", callback)
   return () => mql.removeEventListener("change", callback)
-}
+};
 
-function getSnapshot() {
+const getSnapshot = () => {
   return window.innerWidth < MOBILE_BREAKPOINT
-}
+};
 
-function getServerSnapshot() {
+const getServerSnapshot = () => {
   return false
-}
+};
 
 /**
  * Reads the viewport width through `useSyncExternalStore` so no setState
  * ever runs inside an effect — the media query *is* the external system.
  */
-export function useIsMobile() {
+export const useIsMobile = () => {
   return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-}
+};

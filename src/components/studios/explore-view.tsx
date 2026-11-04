@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import type { StudioCategory } from "@/types/studio";
 
+// fetch data here — ExploreView imports the full catalogue for filtering.
+
 type SortKey =
   | "recommended"
   | "price-asc"
@@ -93,7 +95,7 @@ const CITIES = [...new Set(studios.map((s) => s.city))].sort();
  * Reads the incoming `?category=` deep link once, then keeps all state local —
  * swap the `studios` import for an API call when a backend lands.
  */
-export function ExploreView() {
+export const ExploreView = () => {
   const searchParams = useSearchParams();
 
   const [filters, setFilters] = React.useState<Filters>(() => {
@@ -108,15 +110,15 @@ export function ExploreView() {
   });
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  function update<K extends keyof Filters>(key: K, value: Filters[K]) {
+  const update = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-  }
+  };
 
-  function handlePrice(value: number | readonly number[]) {
+  const handlePrice = (value: number | readonly number[]) => {
     if (Array.isArray(value) && value.length >= 2) {
       setFilters((prev) => ({ ...prev, price: [value[0], value[1]] }));
     }
-  }
+  };
 
   const isDirty =
     filters.query !== "" ||
@@ -136,9 +138,9 @@ export function ExploreView() {
     filters.capacity !== 0,
   ].filter(Boolean).length;
 
-  function clearFilters() {
+  const clearFilters = () => {
     setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
-  }
+  };
 
   const results = React.useMemo(() => {
     const q = filters.query.trim().toLowerCase();
@@ -453,4 +455,4 @@ export function ExploreView() {
       </div>
     </div>
   );
-}
+};

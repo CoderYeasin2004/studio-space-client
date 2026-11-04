@@ -10,10 +10,10 @@ import { toast } from "@/components/ui/toast";
  * Newsletter signup — visual only. Validates the shape of the address and
  * confirms with a toast; swap the handler for your API later.
  */
-export function NewsletterForm() {
+export const NewsletterForm = () => {
   const [email, setEmail] = React.useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const value = email.trim();
 
@@ -32,7 +32,7 @@ export function NewsletterForm() {
       description: `First dispatch lands in ${value}.`,
     });
     setEmail("");
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 flex items-center gap-2">
@@ -58,4 +58,4 @@ export function NewsletterForm() {
       </Button>
     </form>
   );
-}
+};

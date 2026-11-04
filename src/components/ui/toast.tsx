@@ -9,15 +9,15 @@ import { XIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Load
 
 const toast = ToastPrimitive.createToastManager()
 
-function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
+const ToastProvider = ({ ...props }: ToastPrimitive.Provider.Props) => {
   return <ToastPrimitive.Provider {...props} />
-}
+};
 
-function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
+const ToastPortal = ({ ...props }: ToastPrimitive.Portal.Props) => {
   return <ToastPrimitive.Portal data-slot="toast-portal" {...props} />
-}
+};
 
-function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
+const ToastViewport = ({ className, ...props }: ToastPrimitive.Viewport.Props) => {
   return (
     <ToastPrimitive.Viewport
       data-slot="toast-viewport"
@@ -28,9 +28,9 @@ function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
       {...props}
     />
   )
-}
+};
 
-function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
+const Toast = ({ className, ...props }: ToastPrimitive.Root.Props) => {
   return (
     <ToastPrimitive.Root
       data-slot="toast"
@@ -55,9 +55,9 @@ function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
       {...props}
     />
   )
-}
+};
 
-function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
+const ToastContent = ({ className, ...props }: ToastPrimitive.Content.Props) => {
   return (
     <ToastPrimitive.Content
       data-slot="toast-content"
@@ -68,9 +68,9 @@ function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
       {...props}
     />
   )
-}
+};
 
-function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
+const ToastTitle = ({ className, ...props }: ToastPrimitive.Title.Props) => {
   return (
     <ToastPrimitive.Title
       data-slot="toast-title"
@@ -78,12 +78,12 @@ function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
       {...props}
     />
   )
-}
+};
 
-function ToastDescription({
+const ToastDescription = ({
   className,
   ...props
-}: ToastPrimitive.Description.Props) {
+}: ToastPrimitive.Description.Props) => {
   return (
     <ToastPrimitive.Description
       data-slot="toast-description"
@@ -91,13 +91,13 @@ function ToastDescription({
       {...props}
     />
   )
-}
+};
 
-function ToastAction({
+const ToastAction = ({
   className,
   render = <Button variant="outline" size="sm" />,
   ...props
-}: ToastPrimitive.Action.Props) {
+}: ToastPrimitive.Action.Props) => {
   return (
     <ToastPrimitive.Action
       data-slot="toast-action"
@@ -106,14 +106,14 @@ function ToastAction({
       {...props}
     />
   )
-}
+};
 
-function ToastClose({
+const ToastClose = ({
   className,
   children,
   render = <Button variant="ghost" size="icon-sm" />,
   ...props
-}: ToastPrimitive.Close.Props) {
+}: ToastPrimitive.Close.Props) => {
   return (
     <ToastPrimitive.Close
       data-slot="toast-close"
@@ -130,9 +130,9 @@ function ToastClose({
       )}
     </ToastPrimitive.Close>
   )
-}
+};
 
-function ToastIcon({ type }: { type: string | undefined }) {
+const ToastIcon = ({ type }: { type: string | undefined }) => {
   let icon: React.ReactNode = null
 
   if (type === "success") {
@@ -177,9 +177,9 @@ function ToastIcon({ type }: { type: string | undefined }) {
       {icon}
     </span>
   )
-}
+};
 
-function ToastList() {
+const ToastList = () => {
   const { toasts } = ToastPrimitive.useToastManager()
 
   return toasts.map((toastItem) => (
@@ -195,13 +195,13 @@ function ToastList() {
       </ToastContent>
     </Toast>
   ))
-}
+};
 
-function Toaster({
+const Toaster = ({
   children,
   toastManager = toast,
   ...props
-}: ToastPrimitive.Provider.Props) {
+}: ToastPrimitive.Provider.Props) => {
   return (
     <ToastProvider toastManager={toastManager} {...props}>
       {children}
@@ -212,7 +212,7 @@ function Toaster({
       </ToastPortal>
     </ToastProvider>
   )
-}
+};
 
 const createToastManager = ToastPrimitive.createToastManager
 const useToastManager = ToastPrimitive.useToastManager

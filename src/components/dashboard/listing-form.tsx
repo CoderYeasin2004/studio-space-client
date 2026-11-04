@@ -4,15 +4,8 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeftIcon,
-  CheckIcon,
-  ImagePlusIcon,
-  InfoIcon,
-  XIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, CheckIcon, InfoIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
-import { img } from "@/lib/images";
 import { categories, categoryLabels } from "@/data/categories";
 import type { ListingStatus, Studio, StudioAmenity } from "@/types/studio";
 import { toast } from "@/components/ui/toast";
@@ -37,7 +30,6 @@ import {
 } from "@/components/ui/card";
 import { AmenityIcon } from "@/components/studios/amenity-icon";
 
-/** Amenities offered as toggle chips — a representative subset of the catalogue. */
 const AMENITY_OPTIONS: StudioAmenity[] = [
   { name: "Fast Wi-Fi", icon: "wifi" },
   { name: "Blackout blinds", icon: "moon" },
@@ -85,7 +77,7 @@ const emptyState: ListingFormState = {
   status: "draft",
 };
 
-function stateFrom(studio: Studio): ListingFormState {
+const stateFrom = (studio: Studio): ListingFormState => {
   return {
     name: studio.name,
     category: studio.category,
@@ -98,96 +90,208 @@ function stateFrom(studio: Studio): ListingFormState {
     price: String(studio.hourlyPrice),
     status: studio.status,
   };
-}
+};
 
-/**
- * Create / edit listing form. Used by both `/dashboard/listings/new` (no
- * initial value) and `/dashboard/listings/[id]/edit` (prefilled). Submit is
- * mock: it validates, toasts and returns to the listings index.
- */
-export function ListingForm({
+export const ListingForm = ({
   initial,
   listingId,
 }: {
   initial?: Studio;
   listingId?: string;
-}) {
+}) => {
   const router = useRouter();
   const isEdit = Boolean(initial);
 
   const [form, setForm] = React.useState<ListingFormState>(
     initial ? stateFrom(initial) : emptyState,
   );
+  const [imageUrl, setImageUrl] = React.useState("");
+
+  const [imageUrls, setImageUrls] = React.useState<string[]>(
+    initial?.images ?? [],
+  );
   const [amenities, setAmenities] = React.useState<StudioAmenity[]>(
     initial ? initial.amenities : [],
   );
+
   const [saving, setSaving] = React.useState(false);
 
-  function update<K extends keyof ListingFormState>(
+  const update = <K extends keyof ListingFormState>(
     key: K,
     value: ListingFormState[K],
-  ) {
+  ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  };
 
-  function toggleAmenity(option: StudioAmenity) {
+  const toggleAmenity = (option: StudioAmenity) => {
     setAmenities((prev) =>
       prev.some((a) => a.name === option.name)
         ? prev.filter((a) => a.name !== option.name)
         : [...prev, option],
     );
+  };
+ const handleAddImage = () => {
+  const value = imageUrl.trim();
+
+
+  try {
+    const url = new URL(value);
+
+    if (!["http:", "https:"].includes(url.protocol)) {
+      throw new Error("Invalid URL");
+    }
+
+    if (imageUrls.includes(value)) {
+      toast.add({
+        type: "warning",
+        title: "Image already added",
+      });
+      return;
+    }
+
+    setImageUrls((prev) => {
+      const updatedImages = [...prev, value];
+
+      console.log("Updated image URLs:", updatedImages);
+
+      return updatedImages;
+    });
+
+    setImageUrl("");
+  } catch {
+    toast.add({
+      type: "error",
+      title: "Invalid image URL",
+      description: "Please enter a valid image URL.",
+    });
   }
+};
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // ---------- Submit Form ----------
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
+    // Validate before sending anything to MongoDB
     if (form.name.trim().length < 3) {
       toast.add({
         type: "warning",
         title: "Give the studio a name",
-        description: "Three characters or more, so people can find it.",
-      });
-      return;
-    }
-    if (form.city.trim().length < 2 || form.location.trim().length < 3) {
-      toast.add({
-        type: "warning",
-        title: "Add a location",
-        description: "City and street or area are both required.",
-      });
-      return;
-    }
-    if (form.description.trim().length < 20) {
-      toast.add({
-        type: "warning",
-        title: "Describe the space",
-        description: "Write at least a couple of sentences about the studio.",
-      });
-      return;
-    }
-    const price = Number(form.price);
-    if (!Number.isFinite(price) || price <= 0) {
-      toast.add({
-        type: "warning",
-        title: "Set an hourly price",
-        description: "Enter a number greater than zero.",
       });
       return;
     }
 
-    setSaving(true);
-    window.setTimeout(() => {
-      setSaving(false);
+    if (form.city.trim().length < 2 || form.location.trim().length < 3) {
+      toast.add({
+        type: "warning",
+        title: "Add a location",
+        description: "City and area are both required.",
+      });
+      return;
+    }
+
+    if (form.description.trim().length < 20) {
+      toast.add({
+        type: "warning",
+        title: "Describe the space",
+        description: "Write at least 20 characters.",
+      });
+      return;
+    }
+
+    const price = Number(form.price);
+    const capacity = Number(form.capacity);
+    const size = Number(form.size);
+
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.add({
+        type: "warning",
+        title: "Set a valid hourly price",
+      });
+      return;
+    }
+
+    if (
+      !Number.isFinite(capacity) ||
+      capacity < 1 ||
+      !Number.isFinite(size) ||
+      size < 1
+    ) {
+      toast.add({
+        type: "warning",
+        title: "Check capacity and floor area",
+      });
+      return;
+    }
+
+    // Build the MongoDB document
+    const newStudio = {
+      name: form.name.trim(),
+      slug: form.name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, ""),
+      category: form.category,
+      city: form.city.trim(),
+      location: form.location.trim(),
+      country: initial?.country ?? "",
+      description: form.description.trim(),
+      longDescription: form.longDescription.trim(),
+      capacity,
+      size,
+      hourlyPrice: price,
+      status: form.status,
+      amenities,
+      images: imageUrls,
+      rating: initial?.rating ?? 0,
+      reviewCount: initial?.reviewCount ?? 0,
+      featured: initial?.featured ?? false,
+      tags: initial?.tags ?? [],
+      ...(initial?.host && { host: initial.host }),
+    };
+    try {
+      setSaving(true);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newStudio),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save studio");
+      }
+
+      const data = await response.json();
+
+      if (!data.acknowledged) {
+        throw new Error("Studio was not saved");
+      }
+
       toast.add({
         type: "success",
-        title: isEdit ? "Listing updated" : "Listing created",
-        description: isEdit
-          ? `${form.name} was saved.`
-          : `${form.name} was saved as a ${form.status === "live" ? "live listing" : form.status}.`,
+        title: "Studio added successfully!",
+        description: `${form.name} has been saved.`,
       });
+
       router.push("/dashboard/listings");
-    }, 500);
-  }
+    } catch (error) {
+      console.error("Studio submission error:", error);
+
+      toast.add({
+        type: "error",
+        title: "Something went wrong",
+        description: "Could not save your studio. Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
@@ -213,11 +317,13 @@ export function ListingForm({
                 What the space is called, where it is and what it&apos;s for.
               </CardDescription>
             </CardHeader>
+
             <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <Label htmlFor="listing-name">Studio name</Label>
                 <Input
                   id="listing-name"
+                  name="name"
                   value={form.name}
                   onChange={(e) => update("name", e.target.value)}
                   placeholder="e.g. Lumen Daylight Loft"
@@ -236,9 +342,13 @@ export function ListingForm({
                     categories.map((c) => [c.id, c.name]),
                   )}
                 >
-                  <SelectTrigger id="listing-category" className="h-10 w-full bg-card">
+                  <SelectTrigger
+                    id="listing-category"
+                    className="h-10 w-full bg-card"
+                  >
                     <SelectValue placeholder="Choose a discipline" />
                   </SelectTrigger>
+
                   <SelectContent>
                     {categories.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
@@ -258,9 +368,13 @@ export function ListingForm({
                   }
                   items={statusItems}
                 >
-                  <SelectTrigger id="listing-status" className="h-10 w-full bg-card">
+                  <SelectTrigger
+                    id="listing-status"
+                    className="h-10 w-full bg-card"
+                  >
                     <SelectValue placeholder="Draft" />
                   </SelectTrigger>
+
                   <SelectContent>
                     {(Object.keys(statusItems) as ListingStatus[]).map((s) => (
                       <SelectItem key={s} value={s}>
@@ -275,6 +389,7 @@ export function ListingForm({
                 <Label htmlFor="listing-city">City</Label>
                 <Input
                   id="listing-city"
+                  name="city"
                   value={form.city}
                   onChange={(e) => update("city", e.target.value)}
                   placeholder="London"
@@ -286,6 +401,7 @@ export function ListingForm({
                 <Label htmlFor="listing-location">Area / street</Label>
                 <Input
                   id="listing-location"
+                  name="location"
                   value={form.location}
                   onChange={(e) => update("location", e.target.value)}
                   placeholder="Shoreditch, London"
@@ -298,6 +414,7 @@ export function ListingForm({
                 <Textarea
                   id="listing-description"
                   value={form.description}
+                  name="description"
                   onChange={(e) => update("description", e.target.value)}
                   rows={3}
                   placeholder="One or two sentences shown on the card and at the top of the page."
@@ -313,6 +430,7 @@ export function ListingForm({
                 <Textarea
                   id="listing-long"
                   value={form.longDescription}
+                  name="longDescription"
                   onChange={(e) => update("longDescription", e.target.value)}
                   rows={5}
                   placeholder="Everything a booker needs: light, access, kit on site, house rules."
@@ -332,12 +450,14 @@ export function ListingForm({
                 Pick everything guests can expect when they arrive.
               </CardDescription>
             </CardHeader>
+
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {AMENITY_OPTIONS.map((option) => {
                   const selected = amenities.some(
                     (a) => a.name === option.name,
                   );
+
                   return (
                     <button
                       key={option.name}
@@ -358,6 +478,7 @@ export function ListingForm({
                   );
                 })}
               </div>
+
               <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <InfoIcon className="size-3.5" />
                 {amenities.length} selected
@@ -371,63 +492,66 @@ export function ListingForm({
               <CardTitle className="font-heading text-lg tracking-[-0.01em]">
                 Photos
               </CardTitle>
+
               <CardDescription>
-                {initial
-                  ? "Your current gallery. Uploading is demo-only in this build."
-                  : "Uploading is demo-only — a gallery appears once a backend is connected."}
+                Add image URLs for your studio gallery.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {initial ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {initial.images.map((image, index) => (
-                    <div
-                      key={image}
-                      className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted"
-                    >
-                      <Image
-                        src={img(image, "thumb")}
-                        alt={`${initial.name} photo ${index + 1}`}
-                        fill
-                        sizes="(max-width: 640px) 50vw, 160px"
-                        className="object-cover"
-                      />
-                      <span className="absolute top-1.5 left-1.5 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium backdrop-blur">
-                        {index === 0 ? "Cover" : `#${index + 1}`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
-                  <span className="inline-flex size-12 items-center justify-center rounded-full border border-border bg-card text-primary">
-                    <ImagePlusIcon className="size-5" strokeWidth={1.75} />
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium">No photos yet</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Aim for six to ten: wide room shots, details, and the
-                      light at different times of day.
-                    </p>
-                  </div>
-                </div>
-              )}
+              {/* Image URL Input */}
+              <div className="flex gap-2">
+                <Input
+                  type="url"
+                  placeholder="Paste image URL here..."
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddImage();
+                    }
+                  }}
+                />
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-full"
-                onClick={() =>
-                  toast.add({
-                    type: "info",
-                    title: "Uploads are demo-only",
-                    description: "File storage isn't connected in this build.",
-                  })
-                }
-              >
-                <ImagePlusIcon className="size-4" />
-                {initial ? "Add more photos" : "Upload photos"}
-              </Button>
+                <Button type="button" onClick={handleAddImage}>
+                  Add
+                </Button>
+              </div>
+
+              {/* Image Preview */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {imageUrls.map((image, index) => (
+                  <div
+                    key={image}
+                    className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted"
+                  >
+                    <Image
+                      src={image}
+                      alt={`Studio photo ${index + 1}`}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 50vw, 160px"
+                      className="object-cover"
+                    />
+
+                    <span className="absolute top-1.5 left-1.5 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium">
+                      {index === 0 ? "Cover" : `#${index + 1}`}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImageUrls((prev) =>
+                          prev.filter((_, i) => i !== index),
+                        )
+                      }
+                      className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-1 text-xs text-white"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -439,16 +563,16 @@ export function ListingForm({
               <CardTitle className="font-heading text-lg tracking-[-0.01em]">
                 Space &amp; pricing
               </CardTitle>
-              <CardDescription>
-                The numbers guests filter by.
-              </CardDescription>
+              <CardDescription>The numbers guests filter by.</CardDescription>
             </CardHeader>
+
             <CardContent className="grid grid-cols-1 gap-5">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="listing-capacity">Capacity (people)</Label>
                 <Input
                   id="listing-capacity"
                   type="number"
+                  name="capacity"
                   min={1}
                   max={500}
                   value={form.capacity}
@@ -462,6 +586,7 @@ export function ListingForm({
                 <Input
                   id="listing-size"
                   type="number"
+                  name="size"
                   min={4}
                   max={5000}
                   value={form.size}
@@ -475,6 +600,7 @@ export function ListingForm({
                 <Input
                   id="listing-price"
                   type="number"
+                  name="price"
                   min={1}
                   step={5}
                   value={form.price}
@@ -488,17 +614,21 @@ export function ListingForm({
 
               <Separator />
 
+              {/* Preview */}
               <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3.5 text-sm">
                 <p className="font-medium">Preview</p>
+
                 <p className="line-clamp-2 text-muted-foreground">
                   {form.name.trim() || "Untitled studio"}
                 </p>
+
                 <p className="text-muted-foreground">
                   {form.city.trim() || "City"} · {form.capacity || "0"} people ·{" "}
                   <span className="font-medium text-foreground">
                     £{form.price || "0"}/hr
                   </span>
                 </p>
+
                 <p className="text-xs text-muted-foreground">
                   {categoryLabels[
                     form.category as keyof typeof categoryLabels
@@ -506,6 +636,7 @@ export function ListingForm({
                 </p>
               </div>
 
+              {/* Buttons */}
               <div className="flex flex-col gap-2.5">
                 <Button
                   type="submit"
@@ -514,6 +645,7 @@ export function ListingForm({
                   className="h-11 w-full rounded-full"
                 >
                   <CheckIcon className="size-4" />
+
                   {saving
                     ? "Saving…"
                     : isEdit
@@ -522,6 +654,7 @@ export function ListingForm({
                         ? "Publish listing"
                         : "Save listing"}
                 </Button>
+
                 <Button
                   type="button"
                   variant="outline"
@@ -545,4 +678,4 @@ export function ListingForm({
       </div>
     </form>
   );
-}
+};

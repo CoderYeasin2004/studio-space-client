@@ -39,6 +39,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// fetch data here — this component reads the studio catalogue directly.
+
 type TabKey = "upcoming" | "past" | "all";
 
 const statusItems: Record<string, string> = {
@@ -59,20 +61,21 @@ const isUpcoming = (b: Booking) =>
   b.status === "confirmed" || b.status === "pending";
 
 /** Summary tiles derived from the filtered set. */
-function summarise(rows: Booking[]) {
+const summarise = (rows: Booking[]) => {
   return {
     count: rows.length,
     hours: rows.reduce((sum, b) => sum + b.hours, 0),
     spend: rows.reduce((sum, b) => sum + b.total, 0),
   };
-}
+};
 
 /**
  * Client-side bookings screen: tab through upcoming/past, narrow by status or
  * studio, and cancel a pending request. All state is local — swap the mock
  * import for an API call when the backend lands.
  */
-export function BookingsView({ bookings }: { bookings: Booking[] }) {
+
+export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
   const [tab, setTab] = React.useState<TabKey>("upcoming");
   const [status, setStatus] = React.useState<BookingStatus | "all">("all");
   const [query, setQuery] = React.useState("");
@@ -98,12 +101,12 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
   const stats = summarise(filtered);
   const isFiltered = status !== "all" || query.trim() !== "";
 
-  function resetFilters() {
+  const resetFilters = () => {
     setStatus("all");
     setQuery("");
-  }
+  };
 
-  function cancelBooking(booking: Booking) {
+  const cancelBooking = (booking: Booking) => {
     setRows((prev) =>
       prev.map((b) =>
         b.id === booking.id ? { ...b, status: "cancelled" as const } : b,
@@ -114,7 +117,7 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
       title: "Booking cancelled",
       description: `${booking.studioName} on ${formatIsoDate(booking.date)} was cancelled.`,
     });
-  }
+  };
 
   return (
     <div className="flex flex-col gap-7">
@@ -145,7 +148,11 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
           label={tab === "past" ? "Past sessions" : "Sessions"}
           value={String(stats.count)}
         />
-        <SummaryTile icon={ClockIcon} label="Hours booked" value={`${stats.hours}h`} />
+        <SummaryTile
+          icon={ClockIcon}
+          label="Hours booked"
+          value={`${stats.hours}h`}
+        />
         <SummaryTile
           icon={WalletIcon}
           label="Total spend"
@@ -156,10 +163,7 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
 
       {/* ---------- Controls ---------- */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs
-          value={tab}
-          onValueChange={(value) => setTab(value as TabKey)}
-        >
+        <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
           <TabsList className="h-9 w-full sm:w-auto">
             {tabs.map((t) => (
               <TabsTrigger key={t.key} value={t.key} className="px-4">
@@ -183,7 +187,9 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
 
           <Select
             value={status}
-            onValueChange={(v) => setStatus((v ?? "all") as BookingStatus | "all")}
+            onValueChange={(v) =>
+              setStatus((v ?? "all") as BookingStatus | "all")
+            }
             items={statusItems}
           >
             <SelectTrigger className="h-9 w-full bg-background sm:w-44">
@@ -192,7 +198,12 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
             <SelectContent>
               <SelectItem value="all">Any status</SelectItem>
               {(
-                ["confirmed", "pending", "completed", "cancelled"] as BookingStatus[]
+                [
+                  "confirmed",
+                  "pending",
+                  "completed",
+                  "cancelled",
+                ] as BookingStatus[]
               ).map((s) => (
                 <SelectItem key={s} value={s}>
                   {statusItems[s]}
@@ -248,7 +259,9 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
             <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="pl-4 text-xs uppercase">Studio</TableHead>
+                  <TableHead className="pl-4 text-xs uppercase">
+                    Studio
+                  </TableHead>
                   <TableHead className="text-xs uppercase">When</TableHead>
                   <TableHead className="text-xs uppercase">Hours</TableHead>
                   <TableHead className="text-right text-xs uppercase">
@@ -346,9 +359,9 @@ export function BookingsView({ bookings }: { bookings: Booking[] }) {
       )}
     </div>
   );
-}
+};
 
-function SummaryTile({
+const SummaryTile = ({
   icon: Icon,
   label,
   value,
@@ -358,7 +371,7 @@ function SummaryTile({
   label: string;
   value: string;
   className?: string;
-}) {
+}) => {
   return (
     <div
       className={cn(
@@ -377,4 +390,4 @@ function SummaryTile({
       </div>
     </div>
   );
-}
+};

@@ -3,12 +3,12 @@
  * prerendered shell holds a frozen value — `cacheComponents` rejects a bare
  * `new Date()` while statically rendering the page.
  */
-async function readYear() {
+const readYear = async () => {
   "use cache";
   return new Date().getFullYear();
-}
+};
 
-export async function CurrentYear() {
+export const CurrentYear = async () => {
   const year = await readYear();
   return <>{year}</>;
-}
+};

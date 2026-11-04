@@ -4,7 +4,7 @@ import { Categories } from "@/components/home/categories";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { HostPromotion } from "@/components/home/host-promotion";
 
-export default function HomePage() {
+const HomePage = () => {
   return (
     <>
       <Hero />
@@ -14,4 +14,6 @@ export default function HomePage() {
       <HostPromotion />
     </>
   );
-}
+};
+
+export default HomePage;

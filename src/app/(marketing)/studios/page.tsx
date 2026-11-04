@@ -14,7 +14,7 @@ export const metadata: Metadata = {
  * results read the URL (`?category=` deep links) and stream in behind a
  * Suspense boundary, as required by `cacheComponents`.
  */
-export default function ExplorePage() {
+const ExplorePage = () => {
   return (
     <>
       <header className="mx-auto max-w-[1440px] px-5 pt-12 pb-8 sm:px-8 lg:px-12 lg:pt-16">
@@ -30,8 +30,12 @@ export default function ExplorePage() {
       </header>
 
       <Suspense fallback={<ExploreSkeleton />}>
+        {/* fetch data here — pass the fetched list into <ExploreView /> as a prop
+            instead of letting it import the mock catalogue directly. */}
         <ExploreView />
       </Suspense>
     </>
   );
-}
+};
+
+export default ExplorePage;

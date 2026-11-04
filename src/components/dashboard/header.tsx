@@ -50,7 +50,7 @@ const titles: { match: (p: string) => boolean; title: string; crumb: string }[] 
   ];
 
 /** Dashboard top bar: page title, sidebar toggle (mobile) and account menu. */
-export function DashboardHeader() {
+export const DashboardHeader = () => {
   const pathname = usePathname();
   const active = titles.find((t) => t.match(pathname)) ?? titles[0];
 
@@ -140,4 +140,4 @@ export function DashboardHeader() {
       </DropdownMenu>
     </header>
   );
-}
+};

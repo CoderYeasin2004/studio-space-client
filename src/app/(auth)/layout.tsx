@@ -17,11 +17,11 @@ const promises = [
  * left (desktop) and a quiet, focused form column on the right. Deliberately
  * sits outside the marketing navbar/footer so nothing competes with the form.
  */
-export default function AuthLayout({
+const AuthLayout = ({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}) => {
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1fr] xl:grid-cols-[1.2fr_1fr]">
       {/* ---------- Brand panel ---------- */}
@@ -100,4 +100,6 @@ export default function AuthLayout({
       </div>
     </div>
   );
-}
+};
+
+export default AuthLayout;

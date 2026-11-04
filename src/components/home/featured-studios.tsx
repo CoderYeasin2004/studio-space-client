@@ -2,11 +2,13 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { StudioCard } from "@/components/studio/studio-card";
 import { featuredStudios } from "@/data/studios";
 
+// fetch data here — the homepage reads the featured subset from the catalogue.
+
 /**
  * Six featured spaces in an editorial composition: one tall portrait, one
  * wide feature, and four standard cards — deliberately not a uniform grid.
  */
-export function FeaturedStudios() {
+export const FeaturedStudios = () => {
   const [first, second, ...rest] = featuredStudios;
 
   return (
@@ -57,4 +59,4 @@ export function FeaturedStudios() {
       </div>
     </section>
   );
-}
+};

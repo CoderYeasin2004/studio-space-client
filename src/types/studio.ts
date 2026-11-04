@@ -23,6 +23,7 @@ export interface StudioHost {
 }
 
 export interface Studio {
+   _id?: string;
   id: string;
   slug: string;
   name: string;
@@ -43,6 +44,7 @@ export interface Studio {
   amenities: StudioAmenity[];
   host: StudioHost;
   tags: string[];
+  
 }
 
 export interface Category {

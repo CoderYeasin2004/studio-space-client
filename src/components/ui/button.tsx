@@ -47,22 +47,22 @@ const buttonVariants = cva(
  * every render, so intrinsic tags and our own Button are treated as native
  * and components such as `next/link` are not.
  */
-function rendersNativeButton(render: ButtonPrimitive.Props["render"]): boolean {
+const rendersNativeButton = (render: ButtonPrimitive.Props["render"]): boolean => {
   // No replacement element — Base UI draws its own <button>.
   if (render == null) return true
   if (!React.isValidElement(render)) return false
   if (typeof render.type === 'string') return render.type === 'button'
   return render.type === Button
-}
+};
 
-function Button({
+const Button = ({
   className,
   variant = "default",
   size = "default",
   render,
   nativeButton,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) => {
   return (
     <ButtonPrimitive
       data-slot="button"
@@ -72,6 +72,6 @@ function Button({
       {...props}
     />
   )
-}
+};
 
 export { Button, buttonVariants }

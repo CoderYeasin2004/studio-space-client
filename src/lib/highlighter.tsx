@@ -37,7 +37,7 @@ const aliases: Record<string, keyof typeof languages> = {
 
 let highlighter: Promise<HighlighterCore> | undefined
 
-function getHighlighter() {
+const getHighlighter = () => {
   highlighter ??= createHighlighterCore({
     themes: [
       import("shiki/themes/github-light.mjs"),
@@ -48,9 +48,9 @@ function getHighlighter() {
   })
 
   return highlighter
-}
+};
 
-function getLanguage(language: string) {
+const getLanguage = (language: string) => {
   const name = language.toLowerCase()
 
   if (name === "ansi") {
@@ -62,11 +62,11 @@ function getLanguage(language: string) {
   }
 
   return aliases[name] ?? null
-}
+};
 
 // Loads a language and returns a highlighter for it, or null for a language
 // that is not listed.
-export async function loadHighlighter(language: string) {
+export const loadHighlighter = async (language: string) => {
   const lang = getLanguage(language)
 
   if (!lang) {
@@ -82,7 +82,7 @@ export async function loadHighlighter(language: string) {
   return {
     // Returns one React node per line, and the grammar state after the last
     // line. Pass that state back to continue where the code left off.
-    highlight(code: string, state?: GrammarState) {
+    highlight: (code: string, state?: GrammarState) => {
       const tokenize = (text: string) =>
         shiki.codeToTokens(text, {
           lang,
@@ -114,11 +114,11 @@ export async function loadHighlighter(language: string) {
       }
     },
   }
-}
+};
 
 // Returns one React node per line, or null for a language that is not listed.
-export async function highlightCode(code: string, language: string) {
+export const highlightCode = async (code: string, language: string) => {
   const highlighter = await loadHighlighter(language)
 
   return highlighter ? highlighter.highlight(code).lines : null
-}
+};

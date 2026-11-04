@@ -38,7 +38,7 @@ const defaultPreferences: Preferences = {
  * Profile settings form. Reads the mock `userProfile` as its initial state,
  * keeps every change local and confirms with a toast — no API is involved.
  */
-export function ProfileForm() {
+export const ProfileForm = () => {
   const [form, setForm] = React.useState({
     name: userProfile.name,
     email: userProfile.email,
@@ -49,15 +49,15 @@ export function ProfileForm() {
   const [prefs, setPrefs] = React.useState<Preferences>(defaultPreferences);
   const [saving, setSaving] = React.useState(false);
 
-  function update<K extends keyof typeof form>(key: K, value: string) {
+  const update = <K extends keyof typeof form>(key: K, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  };
 
-  function toggle<K extends keyof Preferences>(key: K) {
+  const toggle = <K extends keyof Preferences>(key: K) => {
     setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
+  };
 
-  function handleSave(event: React.FormEvent<HTMLFormElement>) {
+  const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (form.name.trim().length < 2) {
@@ -86,7 +86,7 @@ export function ProfileForm() {
         description: "Your changes were saved to this demo session.",
       });
     }, 450);
-  }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -328,9 +328,9 @@ export function ProfileForm() {
       </div>
     </div>
   );
-}
+};
 
-function PreferenceRow({
+const PreferenceRow = ({
   id,
   label,
   description,
@@ -342,7 +342,7 @@ function PreferenceRow({
   description: string;
   checked: boolean;
   onChange: () => void;
-}) {
+}) => {
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/40">
       <div className="min-w-0">
@@ -357,4 +357,4 @@ function PreferenceRow({
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </div>
   );
-}
+};

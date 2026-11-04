@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 };
 
 /** Account settings: identity, notification preferences and security. */
-export default function ProfilePage() {
+const ProfilePage = () => {
   return (
     <div className="flex flex-col gap-7">
       <div>
@@ -23,4 +23,6 @@ export default function ProfilePage() {
       <ProfileForm />
     </div>
   );
-}
+};
+
+export default ProfilePage;

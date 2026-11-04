@@ -15,7 +15,7 @@ const promises = [
  * left-weighted scrim, plus a proof strip. Also serves as the #about anchor:
  * it tells the StudioSpace story alongside the CTA.
  */
-export function HostPromotion() {
+export const HostPromotion = () => {
   return (
     <section id="about" aria-labelledby="host-heading" className="px-5 sm:px-8 lg:px-12">
       {/* Fixed ink surface — must NOT use bg-foreground, which flips to a
@@ -107,4 +107,4 @@ export function HostPromotion() {
       </div>
     </section>
   );
-}
+};

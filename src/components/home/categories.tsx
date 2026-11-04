@@ -11,7 +11,7 @@ import { SectionHeader } from "@/components/shared/section-header";
  * spans two columns as a feature, the rest step down in size. Photography
  * carries the section; type sits on a gradient scrim.
  */
-export function Categories() {
+export const Categories = () => {
   const [feature, ...others] = categories;
 
   const spans: Record<string, string> = {
@@ -60,9 +60,9 @@ export function Categories() {
       </div>
     </section>
   );
-}
+};
 
-function CategoryTile({
+const CategoryTile = ({
   category,
   className,
   priority = false,
@@ -70,7 +70,7 @@ function CategoryTile({
   category: (typeof categories)[number];
   className?: string;
   priority?: boolean;
-}) {
+}) => {
   return (
     <Link
       href={`/studios?category=${category.id}`}
@@ -107,4 +107,4 @@ function CategoryTile({
       </div>
     </Link>
   );
-}
+};

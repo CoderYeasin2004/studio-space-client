@@ -45,13 +45,13 @@ const groups = [
   },
 ];
 
-function isActivePath(pathname: string, href: string) {
+const isActivePath = (pathname: string, href: string) => {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname.startsWith(href);
-}
+};
 
 /** Sidebar navigation for the host/creator dashboard. */
-export function DashboardSidebar() {
+export const DashboardSidebar = () => {
   const pathname = usePathname();
 
   return (
@@ -144,4 +144,4 @@ export function DashboardSidebar() {
       <SidebarRail />
     </Sidebar>
   );
-}
+};

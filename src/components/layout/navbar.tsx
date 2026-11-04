@@ -28,7 +28,7 @@ const links = [
  * Sticky marketing navbar: transparent over the hero, frosted with a hairline
  * border once the page scrolls. Collapses into a Sheet on mobile.
  */
-export function Navbar() {
+export const Navbar = () => {
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -43,10 +43,10 @@ export function Navbar() {
   // The mobile Sheet closes itself from each control's onClick — no
   // route-change effect needed (avoids a sync setState-in-effect).
 
-  function isActive(href: string) {
+  const isActive = (href: string) => {
     if (href.startsWith("/#")) return false;
     return href === "/" ? pathname === "/" : pathname.startsWith(href);
-  }
+  };
 
   return (
     <header
@@ -169,4 +169,4 @@ export function Navbar() {
       </div>
     </header>
   );
-}
+};

@@ -5,13 +5,13 @@ import { cn } from "cn";
  * StudioSpace brand mark — an aperture/lens iris drawn as six blades.
  * Pure SVG so it inherits currentColor and works at any size.
  */
-export function ApertureMark({
+export const ApertureMark = ({
   className,
   title = "StudioSpace",
 }: {
   className?: string;
   title?: string;
-}) {
+}) => {
   return (
     <svg
       viewBox="0 0 48 48"
@@ -40,12 +40,12 @@ export function ApertureMark({
       <circle cx="24" cy="24" r="3.4" className="fill-background" />
     </svg>
   );
-}
+};
 
 /**
  * Lockup used in the navbar, footer and auth screens.
  */
-export function Logo({
+export const Logo = ({
   className,
   markClassName,
   href = "/",
@@ -55,7 +55,7 @@ export function Logo({
   markClassName?: string;
   href?: string;
   size?: "sm" | "md" | "lg";
-}) {
+}) => {
   const sizes = {
     sm: { mark: "size-6", text: "text-base" },
     md: { mark: "size-8", text: "text-lg" },
@@ -89,4 +89,4 @@ export function Logo({
       </span>
     </Link>
   );
-}
+};

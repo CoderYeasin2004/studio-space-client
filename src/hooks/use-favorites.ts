@@ -14,7 +14,7 @@ let ids: Set<string> = new Set(DEFAULTS);
 const listeners = new Set<() => void>();
 let loaded = false;
 
-function load() {
+const load = () => {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
   try {
@@ -26,30 +26,30 @@ function load() {
   } catch {
     /* ignore corrupt storage */
   }
-}
+};
 
-function persist() {
+const persist = () => {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
   } catch {
     /* storage unavailable */
   }
-}
+};
 
-function subscribe(listener: () => void) {
+const subscribe = (listener: () => void) => {
   load();
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
-}
+};
 
-function getSnapshot() {
+const getSnapshot = () => {
   load();
   return ids;
-}
+};
 
-function toggleId(id: string) {
+const toggleId = (id: string) => {
   load();
   const next = new Set(ids);
   if (next.has(id)) next.delete(id);
@@ -57,10 +57,10 @@ function toggleId(id: string) {
   ids = next;
   persist();
   listeners.forEach((l) => l());
-}
+};
 
 /** Client-side favourites backed by localStorage. */
-export function useFavorites() {
+export const useFavorites = () => {
   const current = React.useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -74,4 +74,4 @@ export function useFavorites() {
   );
 
   return { ids: current, isFavorite, toggle, count: current.size };
-}
+};

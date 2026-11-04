@@ -25,7 +25,8 @@ export const metadata = {
 };
 
 /** Dashboard overview: KPIs, trend, activity, bookings and favourites. */
-export default function DashboardPage() {
+const DashboardPage = () => {
+  // fetch data here — KPIs, trend, activity and bookings all come from one call.
   return (
     <div className="flex flex-col gap-7">
       {/* ---------- Greeting ---------- */}
@@ -142,4 +143,6 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
+};
+
+export default DashboardPage;

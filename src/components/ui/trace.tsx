@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/collapsible"
 import { ChevronRightIcon } from "lucide-react"
 
-function Trace({ className, ...props }: React.ComponentProps<"div">) {
+const Trace = ({ className, ...props }: React.ComponentProps<"div">) => {
   return (
     <div
       data-slot="trace"
@@ -19,15 +19,15 @@ function Trace({ className, ...props }: React.ComponentProps<"div">) {
       {...props}
     />
   )
-}
+};
 
-function TraceLine({
+const TraceLine = ({
   className,
   status,
   ...props
 }: React.ComponentProps<"span"> & {
   status?: "running" | "error" | "pending"
-}) {
+}) => {
   return (
     <span
       data-slot="trace-line"
@@ -39,9 +39,9 @@ function TraceLine({
       {...props}
     />
   )
-}
+};
 
-function TraceIcon({ className, ...props }: React.ComponentProps<"span">) {
+const TraceIcon = ({ className, ...props }: React.ComponentProps<"span">) => {
   return (
     <span
       data-slot="trace-icon"
@@ -53,9 +53,9 @@ function TraceIcon({ className, ...props }: React.ComponentProps<"span">) {
       {...props}
     />
   )
-}
+};
 
-function TraceTitle({ className, ...props }: React.ComponentProps<"span">) {
+const TraceTitle = ({ className, ...props }: React.ComponentProps<"span">) => {
   return (
     <span
       data-slot="trace-title"
@@ -63,12 +63,12 @@ function TraceTitle({ className, ...props }: React.ComponentProps<"span">) {
       {...props}
     />
   )
-}
+};
 
-function TraceDescription({
+const TraceDescription = ({
   className,
   ...props
-}: React.ComponentProps<"span">) {
+}: React.ComponentProps<"span">) => {
   return (
     <span
       data-slot="trace-description"
@@ -79,9 +79,9 @@ function TraceDescription({
       {...props}
     />
   )
-}
+};
 
-function TraceCollapsible({
+const TraceCollapsible = ({
   className,
   ...props
 }: Omit<React.ComponentProps<typeof Collapsible>, "open"> &
@@ -93,7 +93,7 @@ function TraceCollapsible({
           React.ComponentProps<typeof Collapsible>["onOpenChange"]
         >
       }
-  )) {
+  )) => {
   return (
     <Collapsible
       data-slot="trace-collapsible"
@@ -101,13 +101,13 @@ function TraceCollapsible({
       {...props}
     />
   )
-}
+};
 
-function TraceCollapsibleTrigger({
+const TraceCollapsibleTrigger = ({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof CollapsibleTrigger>) {
+}: React.ComponentProps<typeof CollapsibleTrigger>) => {
   return (
     <CollapsibleTrigger
       data-slot="trace-collapsible-trigger"
@@ -124,13 +124,13 @@ function TraceCollapsibleTrigger({
       </TraceIcon>
     </CollapsibleTrigger>
   )
-}
+};
 
-function TraceCollapsibleContent({
+const TraceCollapsibleContent = ({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof CollapsibleContent>) {
+}: React.ComponentProps<typeof CollapsibleContent>) => {
   return (
     <CollapsibleContent
       data-slot="trace-collapsible-content"
@@ -148,7 +148,7 @@ function TraceCollapsibleContent({
       </div>
     </CollapsibleContent>
   )
-}
+};
 
 export {
   Trace,

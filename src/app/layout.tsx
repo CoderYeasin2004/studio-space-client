@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 /* Applies the persisted theme before first paint to avoid a flash */
 const themeScript = `(function(){try{var t=localStorage.getItem("studiospace-theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+const RootLayout = ({ children }: LayoutProps<"/">) => {
   return (
     <html
       lang="en"
@@ -37,7 +38,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script
+  id="theme-script"
+  strategy="beforeInteractive"
+  dangerouslySetInnerHTML={{ __html: themeScript }}
+/>
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>{children}</ThemeProvider>
@@ -45,4 +50,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;

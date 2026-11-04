@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** Registration screen — mock submission only, no auth backend is wired up. */
-export default function RegisterPage() {
+const RegisterPage = () => {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col gap-2.5">
@@ -36,4 +36,6 @@ export default function RegisterPage() {
       </p>
     </div>
   );
-}
+};
+
+export default RegisterPage;

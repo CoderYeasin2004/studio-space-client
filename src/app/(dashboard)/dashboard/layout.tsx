@@ -6,11 +6,11 @@ import { DashboardHeader } from "@/components/dashboard/header";
  * Dashboard shell: collapsible sidebar + sticky top bar. Marketing pages
  * never render inside this group, and vice versa.
  */
-export default function DashboardLayout({
+const DashboardLayout = ({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}) => {
   return (
     <SidebarProvider>
       <DashboardSidebar />
@@ -22,4 +22,6 @@ export default function DashboardLayout({
       </SidebarInset>
     </SidebarProvider>
   );
-}
+};
+
+export default DashboardLayout;

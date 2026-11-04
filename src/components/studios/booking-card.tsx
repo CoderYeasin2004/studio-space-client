@@ -25,15 +25,15 @@ import { toast } from "@/components/ui/toast";
 const START_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
-function label(hour: number) {
+const label = (hour: number) => {
   return `${String(hour).padStart(2, "0")}:00`;
-}
+};
 
 /**
  * Visual booking panel: availability calendar, time controls and a live
  * price breakdown. Frontend-only — booking requests surface as toasts.
  */
-export function BookingCard({ studio }: { studio: Studio }) {
+export const BookingCard = ({ studio }: { studio: Studio }) => {
   const [date, setDate] = React.useState("");
   const [startHour, setStartHour] = React.useState(10);
   const [hours, setHours] = React.useState(2);
@@ -43,7 +43,7 @@ export function BookingCard({ studio }: { studio: Studio }) {
   const total = subtotal + fee;
   const endHour = startHour + hours;
 
-  function handleBook() {
+  const handleBook = () => {
     if (!date) {
       toast.add({
         type: "warning",
@@ -59,15 +59,15 @@ export function BookingCard({ studio }: { studio: Studio }) {
         startHour,
       )}–${label(endHour)} · £${total}`,
     });
-  }
+  };
 
-  function handleMessage() {
+  const handleMessage = () => {
     toast.add({
       type: "info",
       title: `Message sent to ${studio.host.name}`,
       description: "Hosts usually reply within a couple of hours.",
     });
-  }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -210,4 +210,4 @@ export function BookingCard({ studio }: { studio: Studio }) {
       </div>
     </div>
   );
-}
+};

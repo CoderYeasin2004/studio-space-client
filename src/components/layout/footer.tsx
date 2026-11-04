@@ -72,7 +72,7 @@ const socials = [
  * Marketing footer: brand statement + newsletter, then four link columns
  * (site, categories, hosts, support) over a hairline, socials and legal.
  */
-export function Footer() {
+export const Footer = () => {
   return (
     <footer className="mt-20 border-t border-border bg-muted/40 dark:bg-muted/20">
       <div className="mx-auto max-w-[1440px] px-5 pt-16 pb-8 sm:px-8 lg:px-12">
@@ -155,9 +155,9 @@ export function Footer() {
       </div>
     </footer>
   );
-}
+};
 
-function FooterColumn({
+const FooterColumn = ({
   heading,
   links,
   className,
@@ -165,7 +165,7 @@ function FooterColumn({
   heading: string;
   links: { label: string; href: string }[];
   className?: string;
-}) {
+}) => {
   return (
     <nav aria-label={heading} className={cn("flex flex-col gap-3", className)}>
       <p className="eyebrow text-foreground">{heading}</p>
@@ -183,4 +183,4 @@ function FooterColumn({
       </ul>
     </nav>
   );
-}
+};

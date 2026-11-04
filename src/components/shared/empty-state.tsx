@@ -5,7 +5,7 @@ import { cn } from "cn";
  * Shared "nothing to show" panel — used by search results, dashboard lists
  * and any filtered collection.
  */
-export function EmptyState({
+export const EmptyState = ({
   icon: Icon,
   title,
   description,
@@ -17,7 +17,7 @@ export function EmptyState({
   description: string;
   action?: React.ReactNode;
   className?: string;
-}) {
+}) => {
   return (
     <div
       className={cn(
@@ -39,4 +39,4 @@ export function EmptyState({
       {action}
     </div>
   );
-}
+};

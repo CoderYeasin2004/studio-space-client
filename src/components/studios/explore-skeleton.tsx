@@ -3,11 +3,11 @@
  * the Suspense boundary around search-param-dependent UI.
  */
 
-export function ExploreSkeleton({
+export const ExploreSkeleton = ({
   includeHeader = false,
 }: {
   includeHeader?: boolean;
-}) {
+}) => {
   return (
     <div aria-busy="true" aria-label="Loading studios">
       {includeHeader && (
@@ -48,4 +48,4 @@ export function ExploreSkeleton({
       </div>
     </div>
   );
-}
+};

@@ -9,7 +9,7 @@ import { useTheme } from "@/components/theme/theme-provider";
  * Light/dark toggle. Icon swaps with a subtle rotation so the change reads
  * as intentional rather than abrupt.
  */
-export function ThemeToggle({ className }: { className?: string }) {
+export const ThemeToggle = ({ className }: { className?: string }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -40,4 +40,4 @@ export function ThemeToggle({ className }: { className?: string }) {
       </span>
     </Button>
   );
-}
+};

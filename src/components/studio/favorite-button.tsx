@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/toast";
  * Heart toggle used on cards, galleries and detail pages.
  * Visual state only — backed by local storage.
  */
-export function FavoriteButton({
+export const FavoriteButton = ({
   studioId,
   studioName,
   className,
@@ -22,11 +22,11 @@ export function FavoriteButton({
   className?: string;
   size?: "sm" | "md";
   showLabel?: boolean;
-}) {
+}) => {
   const { isFavorite, toggle } = useFavorites();
   const active = isFavorite(studioId);
 
-  function handleClick(e: React.MouseEvent) {
+  const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     toggle(studioId);
@@ -37,7 +37,7 @@ export function FavoriteButton({
         description: studioName,
       });
     }
-  }
+  };
 
   return (
     <button
@@ -67,4 +67,4 @@ export function FavoriteButton({
       )}
     </button>
   );
-}
+};

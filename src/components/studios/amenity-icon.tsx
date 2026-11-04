@@ -93,13 +93,13 @@ const AMENITY_ICONS: Record<string, LucideIcon> = {
   zap: ZapIcon,
 };
 
-export function AmenityIcon({
+export const AmenityIcon = ({
   name,
   className,
 }: {
   name: string;
   className?: string;
-}) {
+}) => {
   const Icon = AMENITY_ICONS[name] ?? SparklesIcon;
   return <Icon className={className} strokeWidth={1.75} aria-hidden />;
-}
+};

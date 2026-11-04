@@ -6,8 +6,10 @@ import { studios } from "@/data/studios";
 import { StudioCard } from "@/components/studio/studio-card";
 import { EmptyState } from "@/components/shared/empty-state";
 
+// fetch data here — favourites resolve against the studio catalogue here.
+
 /** Live favourites list — reflects heart toggles anywhere on the site. */
-export function FavoritesPanel() {
+export const FavoritesPanel = () => {
   const { ids } = useFavorites();
   const favorites = studios.filter((studio) => ids.has(studio.id));
 
@@ -34,4 +36,4 @@ export function FavoritesPanel() {
       )}
     </div>
   );
-}
+};

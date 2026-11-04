@@ -8,7 +8,7 @@ import { img } from "@/lib/images";
 import { FavoriteButton } from "./favorite-button";
 import { Badge } from "@/components/ui/badge";
 
-function Rating({
+const Rating = ({
   rating,
   reviewCount,
   className,
@@ -16,7 +16,7 @@ function Rating({
   rating: number;
   reviewCount: number;
   className?: string;
-}) {
+}) => {
   return (
     <span
       className={cn(
@@ -31,7 +31,7 @@ function Rating({
       </span>
     </span>
   );
-}
+};
 
 interface StudioCardProps {
   studio: Studio;
@@ -46,13 +46,13 @@ interface StudioCardProps {
  * Primary studio presentation. Three variants cover grid, feature and list
  * layouts so the same data drives every surface.
  */
-export function StudioCard({
+export const StudioCard = ({
   studio,
   variant = "standard",
   ratio = "video",
   priority = false,
   className,
-}: StudioCardProps) {
+}: StudioCardProps) => {
   const href = `/studios/${studio.slug}`;
 
   const ratios = {
@@ -209,4 +209,4 @@ export function StudioCard({
       </div>
     </Link>
   );
-}
+};

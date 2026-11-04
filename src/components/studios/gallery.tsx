@@ -20,7 +20,7 @@ import {
  * Studio gallery: cinematic main frame with arrows, a thumbnail rail and a
  * keyboard-navigable lightbox.
  */
-export function Gallery({ images, name }: { images: string[]; name: string }) {
+export const Gallery = ({ images, name }: { images: string[]; name: string }) => {
   const [active, setActive] = React.useState(0);
   const [lightbox, setLightbox] = React.useState(false);
   const count = images.length;
@@ -33,10 +33,10 @@ export function Gallery({ images, name }: { images: string[]; name: string }) {
 
   React.useEffect(() => {
     if (!lightbox) return;
-    function onKey(e: KeyboardEvent) {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") go(-1);
       if (e.key === "ArrowRight") go(1);
-    }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, go]);
@@ -163,9 +163,9 @@ export function Gallery({ images, name }: { images: string[]; name: string }) {
       </Dialog>
     </div>
   );
-}
+};
 
-function NavButton({
+const NavButton = ({
   side,
   onClick,
   label,
@@ -173,7 +173,7 @@ function NavButton({
   side: "left" | "right";
   onClick: () => void;
   label: string;
-}) {
+}) => {
   return (
     <button
       type="button"
@@ -191,4 +191,4 @@ function NavButton({
       )}
     </button>
   );
-}
+};

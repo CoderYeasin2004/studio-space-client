@@ -7,7 +7,7 @@ export type Theme = "light" | "dark";
 const STORAGE_KEY = "studiospace-theme";
 const listeners = new Set<() => void>();
 
-function readTheme(): Theme {
+const readTheme = (): Theme => {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored === "dark" || stored === "light") return stored;
@@ -17,18 +17,18 @@ function readTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
-}
+};
 
-function applyTheme(theme: Theme) {
+const applyTheme = (theme: Theme) => {
   document.documentElement.classList.toggle("dark", theme === "dark");
-}
+};
 
 /**
  * External store so theme reads subscribe instead of triggering
  * setState-in-effect cascades. The inline script in the root layout applies
  * the persisted theme before first paint; this hydrates React's view of it.
  */
-function subscribe(listener: () => void) {
+const subscribe = (listener: () => void) => {
   listeners.add(listener);
 
   const onStorage = (e: StorageEvent) => {
@@ -48,11 +48,11 @@ function subscribe(listener: () => void) {
       .matchMedia("(prefers-color-scheme: dark)")
       .removeEventListener("change", onMedia);
   };
-}
+};
 
-function notify() {
+const notify = () => {
   listeners.forEach((l) => l());
-}
+};
 
 const ThemeContext = React.createContext<{
   theme: Theme;
@@ -64,7 +64,7 @@ const ThemeContext = React.createContext<{
   toggleTheme: () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const theme = React.useSyncExternalStore(
     subscribe,
     readTheme,
@@ -98,8 +98,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
-}
+};
 
-export function useTheme() {
+export const useTheme = () => {
   return React.useContext(ThemeContext);
-}
+};
