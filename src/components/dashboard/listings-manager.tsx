@@ -11,7 +11,6 @@ import {
   Trash2Icon,
   UsersIcon,
 } from "lucide-react";
-import { img } from "@/lib/images";
 import { categoryLabels } from "@/data/categories";
 import type { ListingStatus, Studio } from "@/types/studio";
 import { StatusBadge } from "./status-badge";

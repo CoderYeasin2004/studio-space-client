@@ -15,7 +15,6 @@ import {
 import { cn } from "cn";
 import { img } from "@/lib/images";
 import type { Booking, BookingStatus } from "@/types/studio";
-import { studios } from "@/data/studios";
 import { formatIsoDate } from "@/data/availability";
 import { StatusBadge } from "./status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -38,8 +37,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-// fetch data here — this component reads the studio catalogue directly.
 
 type TabKey = "upcoming" | "past" | "all";
 
@@ -71,8 +68,8 @@ const summarise = (rows: Booking[]) => {
 
 /**
  * Client-side bookings screen: tab through upcoming/past, narrow by status or
- * studio, and cancel a pending request. All state is local — swap the mock
- * import for an API call when the backend lands.
+ * studio, and cancel a pending request. Bookings arrive as props from the
+ * page's API fetch; all filter state stays local.
  */
 
 export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
@@ -275,9 +272,7 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
               </TableHeader>
               <TableBody>
                 {filtered.map((booking) => {
-                  const slug = studios.find(
-                    (s) => s.id === booking.studioId,
-                  )?.slug;
+                  const slug = booking.studioSlug;
                   const cancellable =
                     booking.status === "confirmed" ||
                     booking.status === "pending";

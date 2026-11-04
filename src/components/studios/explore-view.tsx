@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  AlertTriangleIcon,
+  Building2Icon,
   CalendarIcon,
   RotateCcwIcon,
   SearchIcon,
@@ -11,10 +13,10 @@ import {
   XIcon,
 } from "lucide-react";
 import { cn } from "cn";
-import { studios } from "@/data/studios";
 import { categories, categoryLabels } from "@/data/categories";
 import { bookedDates, dayOffset } from "@/data/availability";
 import { StudioCard } from "@/components/studio/studio-card";
+import { ExploreSkeleton } from "@/components/studios/explore-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,9 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { StudioCategory } from "@/types/studio";
-
-// fetch data here — ExploreView imports the full catalogue for filtering.
+import type { Studio, StudioCategory } from "@/types/studio";
 
 type SortKey =
   | "recommended"
@@ -88,12 +88,13 @@ const DEFAULT_FILTERS: Filters = {
   sort: "recommended",
 };
 
-const CITIES = [...new Set(studios.map((s) => s.city))].sort();
+type LoadState = "loading" | "error" | "ready";
 
 /**
- * Fully client-side search / filter / sort over the mock catalogue.
+ * Search / filter / sort over live studio listings fetched from the API.
  * Reads the incoming `?category=` deep link once, then keeps all state local —
- * swap the `studios` import for an API call when a backend lands.
+ * the catalogue loads once on mount (`status: "live"` only) and everything
+ * else (results, city options, price ceiling) derives from that response.
  */
 export const ExploreView = () => {
   const searchParams = useSearchParams();
@@ -109,6 +110,91 @@ export const ExploreView = () => {
     };
   });
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  const [studios, setStudios] = React.useState<Studio[]>([]);
+  const [loadState, setLoadState] = React.useState<LoadState>("loading");
+  /** Bumped by "Try again" — re-runs the fetch effect below. */
+  const [reloadKey, setReloadKey] = React.useState(0);
+
+  /** Fetch + normalize the live catalogue. Pure — callers land the state. */
+  const fetchLiveStudios = React.useCallback(async (): Promise<
+    Studio[] | null
+  > => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
+      );
+
+      if (!response.ok) {
+        console.error(`Studios request failed (${response.status})`);
+        return null;
+      }
+
+      const data: unknown = await response.json();
+
+      if (!Array.isArray(data)) {
+        console.error("Studios response was not a list");
+        return null;
+      }
+
+      return (data as Studio[])
+        .filter((s) => s.status === "live")
+        .map((s) => ({ ...s, id: s._id ?? s.id ?? "" }));
+    } catch (error) {
+      console.error("Failed to load studios:", error);
+      return null;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    fetchLiveStudios().then((live) => {
+      if (cancelled) return;
+
+      if (live === null) {
+        setLoadState("error");
+        return;
+      }
+
+      setStudios(live);
+      setLoadState("ready");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchLiveStudios, reloadKey]);
+
+  /** Slider ceiling — PRICE_MAX floor, rounded up to the priciest live studio. */
+  const priceCeiling = React.useMemo(() => {
+    const highest = studios.reduce(
+      (max, s) => Math.max(max, s.hourlyPrice),
+      PRICE_MAX,
+    );
+    return Math.ceil(highest / 50) * 50;
+  }, [studios]);
+
+  /** City filter options — derived from the fetched catalogue. */
+  const cities = React.useMemo(
+    () => [...new Set(studios.map((s) => s.city))].sort(),
+    [studios],
+  );
+
+  /**
+   * Widen the default price range once real data lands — but only while the
+   * user hasn't moved the slider themselves (tracked against the last applied
+   * ceiling).
+   */
+  const appliedCeiling = React.useRef(PRICE_MAX);
+  React.useEffect(() => {
+    if (priceCeiling === appliedCeiling.current) return;
+    const userUntouched = filters.price[1] === appliedCeiling.current;
+    appliedCeiling.current = priceCeiling;
+    if (userUntouched) {
+      setFilters((prev) => ({ ...prev, price: [prev.price[0], priceCeiling] }));
+    }
+  }, [priceCeiling, filters.price]);
 
   const update = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -126,7 +212,7 @@ export const ExploreView = () => {
     filters.city !== "all" ||
     filters.date !== "" ||
     filters.price[0] !== 0 ||
-    filters.price[1] !== PRICE_MAX ||
+    filters.price[1] !== priceCeiling ||
     filters.capacity !== 0;
 
   const activeCount = [
@@ -134,12 +220,16 @@ export const ExploreView = () => {
     filters.category !== "all",
     filters.city !== "all",
     filters.date !== "",
-    filters.price[0] !== 0 || filters.price[1] !== PRICE_MAX,
+    filters.price[0] !== 0 || filters.price[1] !== priceCeiling,
     filters.capacity !== 0,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
-    setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
+    setFilters((prev) => ({
+      ...DEFAULT_FILTERS,
+      price: [0, priceCeiling],
+      sort: prev.sort,
+    }));
   };
 
   const results = React.useMemo(() => {
@@ -150,7 +240,7 @@ export const ExploreView = () => {
       if (filters.category !== "all" && studio.category !== filters.category)
         return false;
       if (filters.city !== "all" && studio.city !== filters.city) return false;
-      if (filters.date && bookedDates(studio.id).includes(filters.date))
+      if (filters.date && bookedDates(studio.id ?? "").includes(filters.date))
         return false;
       if (
         studio.hourlyPrice < filters.price[0] ||
@@ -168,7 +258,7 @@ export const ExploreView = () => {
           studio.description,
           studio.tags.join(" "),
           studio.amenities.map((a) => a.name).join(" "),
-          studio.host.name,
+          studio.host?.name ?? "",
         ]
           .join(" ")
           .toLowerCase();
@@ -200,7 +290,35 @@ export const ExploreView = () => {
         );
     }
     return sorted;
-  }, [filters]);
+  }, [filters, studios]);
+
+  if (loadState === "loading") {
+    return <ExploreSkeleton />;
+  }
+
+  if (loadState === "error") {
+    return (
+      <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
+        <EmptyState
+          icon={AlertTriangleIcon}
+          title="We couldn't load the studios"
+          description="The studio service didn't respond. Check your connection and try again."
+          action={
+            <Button
+              onClick={() => {
+                setLoadState("loading");
+                setReloadKey((k) => k + 1);
+              }}
+              className="rounded-full px-6"
+            >
+              <RotateCcwIcon className="size-4" />
+              Try again
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -294,14 +412,14 @@ export const ExploreView = () => {
             <Select
               value={filters.city}
               onValueChange={(v) => update("city", v ?? "all")}
-              items={{ all: "All cities", ...Object.fromEntries(CITIES.map((c) => [c, c])) }}
+              items={{ all: "All cities", ...Object.fromEntries(cities.map((c) => [c, c])) }}
             >
               <SelectTrigger className="h-9 w-full bg-card">
                 <SelectValue placeholder="All cities" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All cities</SelectItem>
-                {CITIES.map((city) => (
+                {cities.map((city) => (
                   <SelectItem key={city} value={city}>
                     {city}
                   </SelectItem>
@@ -342,14 +460,14 @@ export const ExploreView = () => {
                 <span className="text-muted-foreground">Price / hr</span>
                 <span className="font-medium tabular-nums">
                   £{filters.price[0]} – £{filters.price[1]}
-                  {filters.price[1] === PRICE_MAX ? "+" : ""}
+                  {filters.price[1] === priceCeiling ? "+" : ""}
                 </span>
               </div>
               <Slider
                 value={filters.price}
                 onValueChange={handlePrice}
                 min={0}
-                max={PRICE_MAX}
+                max={priceCeiling}
                 step={5}
                 aria-label="Maximum hourly price"
                 className="mt-1.5"
@@ -429,17 +547,25 @@ export const ExploreView = () => {
 
         {results.length === 0 ? (
           <div className="mt-8">
-            <EmptyState
-              icon={SearchXIcon}
-              title="No studios match those filters"
-              description="Try widening the price range, clearing the date, or searching another city — there are spaces waiting."
-              action={
-                <Button onClick={clearFilters} className="rounded-full px-6">
-                  <RotateCcwIcon className="size-4" />
-                  Reset filters
-                </Button>
-              }
-            />
+            {studios.length === 0 ? (
+              <EmptyState
+                icon={Building2Icon}
+                title="No studios published yet"
+                description="New spaces appear here as soon as hosts publish them — check back soon."
+              />
+            ) : (
+              <EmptyState
+                icon={SearchXIcon}
+                title="No studios match those filters"
+                description="Try widening the price range, clearing the date, or searching another city — there are spaces waiting."
+                action={
+                  <Button onClick={clearFilters} className="rounded-full px-6">
+                    <RotateCcwIcon className="size-4" />
+                    Reset filters
+                  </Button>
+                }
+              />
+            )}
           </div>
         ) : (
           <div className="mt-7 grid grid-cols-1 gap-x-6 gap-y-11 sm:grid-cols-2 lg:grid-cols-3">

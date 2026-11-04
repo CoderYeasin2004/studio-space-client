@@ -31,19 +31,21 @@ const label = (hour: number) => {
 
 /**
  * Visual booking panel: availability calendar, time controls and a live
- * price breakdown. Frontend-only — booking requests surface as toasts.
+ * price breakdown. Submits to POST /studios/booking and reports the outcome
+ * as a toast.
  */
 export const BookingCard = ({ studio }: { studio: Studio }) => {
   const [date, setDate] = React.useState("");
   const [startHour, setStartHour] = React.useState(10);
   const [hours, setHours] = React.useState(2);
+  const [submitting, setSubmitting] = React.useState(false);
 
   const subtotal = studio.hourlyPrice * hours;
   const fee = Math.round(subtotal * 0.08);
   const total = subtotal + fee;
   const endHour = startHour + hours;
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!date) {
       toast.add({
         type: "warning",
@@ -52,13 +54,54 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
       });
       return;
     }
-    toast.add({
-      type: "success",
-      title: "Booking request sent",
-      description: `${studio.name} · ${formatIsoDate(date)} · ${label(
-        startHour,
-      )}–${label(endHour)} · £${total}`,
-    });
+
+    // Ignore repeat clicks while a request is already in flight.
+    if (submitting) return;
+    setSubmitting(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studioId: studio.id ?? studio._id ?? "",
+            studioSlug: studio.slug,
+            studioName: studio.name,
+            studioImage: studio.images.length > 0 ? studio.images[0] : "",
+            location: studio.location,
+            date,
+            startTime: label(startHour),
+            endTime: label(endHour),
+            hours,
+            total,
+            status: "pending",
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Booking request failed (${response.status})`);
+      }
+
+      toast.add({
+        type: "success",
+        title: "Booking request sent",
+        description: `${studio.name} · ${formatIsoDate(date)} · ${label(
+          startHour,
+        )}–${label(endHour)} · £${total}`,
+      });
+    } catch (error) {
+      console.error("Failed to submit booking:", error);
+      toast.add({
+        type: "error",
+        title: "Couldn't send your booking request",
+        description: "The booking service didn't respond. Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleMessage = () => {
@@ -97,7 +140,7 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
       </div>
 
       <AvailabilityCalendar
-        studioId={studio.id}
+        studioId={studio.id ?? studio._id ?? ""}
         selected={date}
         onSelect={setDate}
       />
@@ -176,6 +219,7 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
       <Button
         size="lg"
         onClick={handleBook}
+        disabled={submitting}
         className="h-12 w-full rounded-full"
       >
         {date ? `Request to book · ${formatIsoDate(date)}` : "Request to book"}

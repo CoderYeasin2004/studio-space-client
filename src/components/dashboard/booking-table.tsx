@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRightIcon } from "lucide-react";
 import { img } from "@/lib/images";
-import { studios } from "@/data/studios";
 import type { Booking } from "@/types/studio";
 import { StatusBadge } from "./status-badge";
 import {
@@ -14,11 +13,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// fetch data here — this component reads the studio catalogue directly.
-
 /**
  * Bookings table shared by the dashboard overview and the bookings page.
- * Rows deep-link to the studio; statuses are mock-data driven.
+ * Rows deep-link to the studio via the booking's own `studioSlug`; statuses
+ * come from the booking record.
  */
 export const BookingTable = ({ bookings }: { bookings: Booking[] }) => {
   return (
@@ -38,7 +36,7 @@ export const BookingTable = ({ bookings }: { bookings: Booking[] }) => {
         </TableHeader>
         <TableBody>
           {bookings.map((booking) => {
-            const slug = studios.find((s) => s.id === booking.studioId)?.slug;
+            const slug = booking.studioSlug;
             return (
               <TableRow key={booking.id} className="border-border">
                 <TableCell className="py-3 pl-0">

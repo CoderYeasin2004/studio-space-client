@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 /** Live favourites list — reflects heart toggles anywhere on the site. */
 export const FavoritesPanel = () => {
   const { ids } = useFavorites();
-  const favorites = studios.filter((studio) => ids.has(studio.id));
+  const favorites = studios.filter((studio) => ids.has(studio.id ?? ""));
 
   if (favorites.length === 0) {
     return (

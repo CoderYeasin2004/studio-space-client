@@ -22,30 +22,7 @@ export interface StudioHost {
   since: string;
 }
 
-// export interface Studio {
-//    _id?: string;
-//   id: string;
-//   slug: string;
-//   name: string;
-//   location: string;
-//   city: string;
-//   country: string;
-//   category: StudioCategory;
-//   description: string;
-//   longDescription: string;
-//   hourlyPrice: number;
-//   rating: number;
-//   reviewCount: number;
-//   capacity: number;
-//   size: number;
-//   featured: boolean;
-//   status: ListingStatus;
-//   images: string[];
-//   amenities: StudioAmenity[];
-//   host: StudioHost;
-//   tags: string[];
-  
-// }
+
 export interface Studio {
   _id?: string;
   id?: string;
@@ -81,6 +58,7 @@ export interface Category {
 export interface Booking {
   id: string;
   studioId: string;
+  studioSlug?: string;
   studioName: string;
   studioImage: string;
   location: string;

@@ -52,20 +52,7 @@ export const generateMetadata = async ({
   }
 };
 
-// const StudioDetailsPage = async ({
-//   params,
-// }: {
-//   params: Promise<{ slug: string }>;
-// }) => {
-//   const { slug } = await params;
-//   // fetch data here — replace getStudioBySlug(slug) with a real API lookup.
 
-// const studios = await fetch( `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug.slug}`,{
-//   cache: "no-store"
-// },
-// )
-// const studiosData = await studios.json()
-// console.log(studiosData, 'studiosdata')
 const StudioDetailsPage = async ({
   params,
 }: {
@@ -97,7 +84,7 @@ const studio: Studio = {
   id: studioData._id ?? studioData.id ?? "",
 };
  const related = getRelatedStudios(studio, 3);
-const reviews = studio.reviewCount > 0 ? reviewsFor(studio.id) : [];
+const reviews = studio.reviewCount > 0 ? reviewsFor(studioId) : [];
   const specs = [
     { icon: UsersIcon, label: "Capacity", value: `${studio.capacity} people` },
     { icon: RulerIcon, label: "Floor area", value: `${studio.size} m²` },

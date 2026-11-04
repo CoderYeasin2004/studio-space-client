@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { ArrowRightIcon, CalendarIcon, PlusIcon } from "lucide-react";
-import {
-  bookingTrend,
-  dashboardStats,
-  recentActivity,
-  upcomingBookings,
-} from "@/data/bookings";
+import type { Booking } from "@/types/studio";
+import { bookingTrend, dashboardStats, recentActivity } from "@/data/bookings";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { BookingTrendChart } from "@/components/dashboard/booking-trend-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
@@ -24,9 +20,43 @@ export const metadata = {
   title: "Dashboard — StudioSpace",
 };
 
-/** Dashboard overview: KPIs, trend, activity, bookings and favourites. */
-const DashboardPage = () => {
-  // fetch data here — KPIs, trend, activity and bookings all come from one call.
+/**
+ * Dashboard overview: KPIs, trend, activity, bookings and favourites.
+ * Bookings load live from the API on every request (`cache: "no-store"`),
+ * same blocking-route pattern as the listings page.
+ */
+export const instant = false;
+
+const DashboardPage = async () => {
+  let bookings: Booking[] = [];
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch bookings (${response.status})`);
+    }
+
+    const data: unknown = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Bookings response was not a list");
+    }
+
+    bookings = data as Booking[];
+  } catch (error) {
+    console.error("Failed to load bookings:", error);
+  }
+
+  const upcomingBookings = bookings.filter(
+    (b) => b.status === "confirmed" || b.status === "pending",
+  );
+
   return (
     <div className="flex flex-col gap-7">
       {/* ---------- Greeting ---------- */}

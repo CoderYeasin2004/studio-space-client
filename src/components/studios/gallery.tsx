@@ -43,45 +43,50 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
 
   return (
     <div>
-      {/* Main frame */}
-      <div className="group relative aspect-[16/11] overflow-hidden rounded-2xl bg-muted sm:aspect-[16/9] lg:aspect-[2/1]">
-        <Image
-          src={img(images[active], "gallery")}
-          alt={`${name} — photo ${active + 1} of ${count}`}
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 66vw"
-          className="zoom-media object-cover"
-        />
+     {/* Main frame */}
+<div className="group relative aspect-[16/10] overflow-hidden rounded-2xl bg-muted sm:aspect-[16/9] lg:aspect-[2/1]">
+  <Image
+    src={img(images[active], "gallery")}
+    alt={`${name} — photo ${active + 1} of ${count}`}
+    fill
+    priority
+    sizes="(max-width: 1024px) 100vw, 66vw"
+    className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+  />
 
-        <button
-          type="button"
-          onClick={() => setLightbox(true)}
-          aria-label="Expand photo"
-          className="absolute top-4 right-4 inline-flex size-9 items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-sm outline-none transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-white/60"
-        >
-          <Maximize2Icon className="size-4" />
-        </button>
+  {/* Image overlay */}
+  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
 
-        {count > 1 && (
-          <>
-            <NavButton
-              side="left"
-              onClick={() => go(-1)}
-              label="Previous photo"
-            />
-            <NavButton
-              side="right"
-              onClick={() => go(1)}
-              label="Next photo"
-            />
-          </>
-        )}
+  {/* Expand button */}
+  <button
+    type="button"
+    onClick={() => setLightbox(true)}
+    aria-label="Expand photo"
+    className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-black/65 group-hover:opacity-100 focus-visible:opacity-100"
+  >
+    <Maximize2Icon className="size-4" />
+  </button>
 
-        <span className="absolute bottom-4 left-4 rounded-full bg-black/50 px-3 py-1 text-xs font-medium tabular-nums text-white backdrop-blur-sm">
-          {active + 1} / {count}
-        </span>
-      </div>
+  {/* Image counter */}
+  <span className="absolute bottom-4 left-4 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium tabular-nums text-white backdrop-blur-md">
+    {active + 1} / {count}
+  </span>
+
+  {count > 1 && (
+    <>
+      <NavButton
+        side="left"
+        onClick={() => go(-1)}
+        label="Previous photo"
+      />
+      <NavButton
+        side="right"
+        onClick={() => go(1)}
+        label="Next photo"
+      />
+    </>
+  )}
+</div>
 
       {/* Thumbnail rail */}
       {count > 1 && (
@@ -93,20 +98,20 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
               onClick={() => setActive(index)}
               aria-label={`Show photo ${index + 1}`}
               aria-current={index === active}
-              className={cn(
-                "relative aspect-[3/2] overflow-hidden rounded-lg bg-muted outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50",
-                index === active
-                  ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                  : "opacity-70 hover:opacity-100",
-              )}
+             className={cn(
+  "relative aspect-[3/2] overflow-hidden rounded-xl bg-muted outline-none transition-all duration-300",
+  index === active
+    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+    : "opacity-65 hover:opacity-100",
+)}
             >
               <Image
-                src={img(image, "thumb")}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 25vw, 16vw"
-                className="object-cover"
-              />
+  src={img(image, "thumb")}
+  alt=""
+  fill
+  sizes="(max-width: 640px) 25vw, 16vw"
+  className="object-cover transition-transform duration-500 hover:scale-105"
+/>
             </button>
           ))}
         </div>

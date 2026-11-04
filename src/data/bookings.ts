@@ -105,7 +105,7 @@ export const recentBookings = bookings.filter(
 export const favoriteStudioIds = ["st-02", "st-04", "st-10", "st-05"];
 
 export const favoriteStudios = studios.filter((s) =>
-  favoriteStudioIds.includes(s.id),
+  favoriteStudioIds.includes(s.id ?? ""),
 );
 
 export const userProfile: UserProfile = {

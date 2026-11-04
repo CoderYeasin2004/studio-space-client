@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CheckIcon, InfoIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, CheckIcon, FileTextIcon, InfoIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
 import { categories, categoryLabels } from "@/data/categories";
 import type { ListingStatus, Studio, StudioAmenity } from "@/types/studio";
@@ -223,6 +223,14 @@ export const ListingForm = ({
       return;
     }
 
+    // Submission intent — the clicked submit button decides the saved status;
+    // pressing Enter falls back to the Visibility select above.
+    const submitter = (e.nativeEvent as SubmitEvent).submitter;
+    const intent =
+      submitter instanceof HTMLButtonElement ? submitter.value : "";
+    const status: ListingStatus =
+      intent === "publish" ? "live" : intent === "draft" ? "draft" : form.status;
+
     // Build the MongoDB document
     const newStudio = {
       name: form.name.trim(),
@@ -240,7 +248,7 @@ export const ListingForm = ({
       capacity,
       size,
       hourlyPrice: price,
-      status: form.status,
+      status,
       amenities,
       images: imageUrls,
       rating: initial?.rating ?? 0,
@@ -640,19 +648,29 @@ export const ListingForm = ({
               <div className="flex flex-col gap-2.5">
                 <Button
                   type="submit"
+                  name="intent"
+                  value="publish"
                   size="lg"
                   disabled={saving}
                   className="h-11 w-full rounded-full"
                 >
                   <CheckIcon className="size-4" />
 
-                  {saving
-                    ? "Saving…"
-                    : isEdit
-                      ? "Save changes"
-                      : form.status === "live"
-                        ? "Publish listing"
-                        : "Save listing"}
+                  {saving ? "Saving…" : "Publish Listing"}
+                </Button>
+
+                <Button
+                  type="submit"
+                  name="intent"
+                  value="draft"
+                  variant="outline"
+                  size="lg"
+                  disabled={saving}
+                  className="h-11 w-full rounded-full"
+                >
+                  <FileTextIcon className="size-4" />
+
+                  {saving ? "Saving…" : "Save as Draft"}
                 </Button>
 
                 <Button

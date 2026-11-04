@@ -9,6 +9,13 @@ export const metadata = {
   title: "My listings — StudioSpace",
 };
 
+/**
+ * The listings page reads live data from the API on every request
+ * (`cache: "no-store"`), so there is no static shell to prerender.
+ * Same blocking-route pattern as the edit route.
+ */
+export const instant = false;
+
 const ListingsPage = async () => {
   let listings: Studio[] = [];
 

@@ -125,7 +125,7 @@ export const StudioCard = ({
                 {studio.name}
               </h3>
             </div>
-            <FavoriteButton studioId={studio.id} studioName={studio.name} />
+            <FavoriteButton studioId={studio.id ?? studio._id ?? ""} studioName={studio.name} />
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/75">
@@ -176,7 +176,7 @@ export const StudioCard = ({
           </Badge>
         </div>
         <div className="absolute top-3 right-3">
-          <FavoriteButton studioId={studio.id} studioName={studio.name} />
+          <FavoriteButton studioId={studio.id ?? studio._id ?? ""} studioName={studio.name} />
         </div>
         <div className="absolute right-3 bottom-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
           £{studio.hourlyPrice}/hr
