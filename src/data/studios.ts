@@ -11,7 +11,7 @@ import type { Studio } from "@/types/studio";
 export const studios: Studio[] = [
   {
     id: "st-01",
-    slug: "lumen-daylight-loft",
+    ParamsSlug: "lumen-daylight-loft",
     name: "Lumen Daylight Loft",
     location: "Shoreditch, London",
     city: "London",
@@ -55,7 +55,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-02",
-    slug: "northlight-stage",
+    ParamsSlug: "northlight-stage",
     name: "Northlight Stage",
     location: "Kreuzberg, Berlin",
     city: "Berlin",
@@ -99,7 +99,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-03",
-    slug: "the-green-room",
+    ParamsSlug: "the-green-room",
     name: "The Green Room",
     location: "Bushwick, Brooklyn",
     city: "New York",
@@ -143,7 +143,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-04",
-    slug: "analog-attic",
+    ParamsSlug: "analog-attic",
     name: "Analog Attic",
     location: "Hackney, London",
     city: "London",
@@ -187,7 +187,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-05",
-    slug: "kiln-workshop",
+    ParamsSlug: "kiln-workshop",
     name: "Kiln & Workshop",
     location: "Leith, Edinburgh",
     city: "Edinburgh",
@@ -231,7 +231,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-06",
-    slug: "aperture-cyclorama",
+    ParamsSlug: "aperture-cyclorama",
     name: "Aperture Cyclorama",
     location: "Capitol Hill, Seattle",
     city: "Seattle",
@@ -275,7 +275,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-07",
-    slug: "frame-and-focus",
+    ParamsSlug: "frame-and-focus",
     name: "Frame & Focus",
     location: "Tiergarten, Berlin",
     city: "Berlin",
@@ -319,7 +319,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-08",
-    slug: "low-tide-sessions",
+    ParamsSlug: "low-tide-sessions",
     name: "Low Tide Sessions",
     location: "Porto, Portugal",
     city: "Porto",
@@ -363,7 +363,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-09",
-    slug: "studio-marigold",
+    ParamsSlug: "studio-marigold",
     name: "Studio Marigold",
     location: "Kreuzberg, Berlin",
     city: "Berlin",
@@ -407,7 +407,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-10",
-    slug: "frequency-lab",
+    ParamsSlug: "frequency-lab",
     name: "Frequency Lab",
     location: "Silver Lake, Los Angeles",
     city: "Los Angeles",
@@ -451,7 +451,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-11",
-    slug: "paper-and-press",
+    ParamsSlug: "paper-and-press",
     name: "Paper & Press",
     location: "Marseille, France",
     city: "Marseille",
@@ -495,7 +495,7 @@ export const studios: Studio[] = [
   },
   {
     id: "st-12",
-    slug: "midnight-radio",
+    ParamsSlug: "midnight-radio",
     name: "Midnight Radio",
     location: "Camden, London",
     city: "London",
@@ -542,7 +542,7 @@ export const studios: Studio[] = [
 export const featuredStudios = studios.filter((s) => s.featured);
 
 export const getStudioBySlug = (slug: string): Studio | undefined => {
-  return studios.find((s) => s.slug === slug);
+  return studios.find((s) => s.ParamsSlug === slug);
 };
 
 export const getRelatedStudios = (studio: Studio, limit = 3): Studio[] => {

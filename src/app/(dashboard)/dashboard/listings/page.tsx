@@ -25,6 +25,8 @@ const ListingsPage = async () => {
     }
 
     listings = await response.json();
+    console.log("First Listing:", listings[0]);
+console.log("First Listing Slug:", listings[0]?.slug);
   } catch (error) {
     console.error("Failed to load listings:", error);
   }

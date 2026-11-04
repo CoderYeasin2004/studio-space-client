@@ -62,6 +62,8 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
   };
 
   const handleMessage = () => {
+    if (!studio.host) return;
+
     toast.add({
       type: "info",
       title: `Message sent to ${studio.host.name}`,
@@ -171,7 +173,11 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
         </div>
       </div>
 
-      <Button size="lg" onClick={handleBook} className="h-12 w-full rounded-full">
+      <Button
+        size="lg"
+        onClick={handleBook}
+        className="h-12 w-full rounded-full"
+      >
         {date ? `Request to book · ${formatIsoDate(date)}` : "Request to book"}
       </Button>
 
@@ -181,33 +187,38 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
       </p>
 
       {/* Host row */}
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-        <div className="relative size-11 shrink-0 overflow-hidden rounded-full bg-muted">
-          <Image
-            src={img(studio.host.avatar, "avatar")}
-            alt={studio.host.name}
-            fill
-            sizes="44px"
-            className="object-cover"
-          />
+      {studio.host && (
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+          <div className="relative size-11 shrink-0 overflow-hidden rounded-full bg-muted">
+            <Image
+              src={img(studio.host.avatar, "avatar")}
+              alt={studio.host.name}
+              fill
+              sizes="44px"
+              className="object-cover"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{studio.host.name}</p>
+
+            <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+              <ClockIcon className="size-3" />
+              Host since {studio.host.since}
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMessage}
+            className="shrink-0 rounded-full"
+          >
+            <MessageSquareIcon className="size-3.5" />
+            Message
+          </Button>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{studio.host.name}</p>
-          <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-            <ClockIcon className="size-3" />
-            Host since {studio.host.since}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleMessage}
-          className="shrink-0 rounded-full"
-        >
-          <MessageSquareIcon className="size-3.5" />
-          Message
-        </Button>
-      </div>
+      )}
     </div>
   );
 };

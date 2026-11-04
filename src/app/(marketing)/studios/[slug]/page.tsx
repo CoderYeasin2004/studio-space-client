@@ -10,7 +10,8 @@ import {
   StarIcon,
   UsersIcon,
 } from "lucide-react";
-import { getRelatedStudios, getStudioBySlug, studios } from "@/data/studios";
+import { getRelatedStudios } from "@/data/studios";
+import type { Studio } from "@/types/studio";
 import { categoryLabels } from "@/data/categories";
 import { reviewsFor } from "@/data/reviews";
 import { img } from "@/lib/images";
@@ -21,37 +22,82 @@ import { StudioCard } from "@/components/studio/studio-card";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Badge } from "@/components/ui/badge";
 
-export const generateStaticParams = async () => {
-  return studios.map((studio) => ({ slug: studio.slug }));
-};
+
 
 export const generateMetadata = async ({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> => {
-  "use cache";
   const { slug } = await params;
-  const studio = getStudioBySlug(slug);
-  if (!studio) return { title: "Studio not found — StudioSpace" };
-  return {
-    title: `${studio.name} — StudioSpace`,
-    description: studio.description,
-  };
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      return { title: "Studio not found — StudioSpace" };
+    }
+
+    const studio: Studio = await response.json();
+
+    return {
+      title: `${studio.name} — StudioSpace`,
+      description: studio.description,
+    };
+  } catch {
+    return { title: "StudioSpace" };
+  }
 };
 
+// const StudioDetailsPage = async ({
+//   params,
+// }: {
+//   params: Promise<{ slug: string }>;
+// }) => {
+//   const { slug } = await params;
+//   // fetch data here — replace getStudioBySlug(slug) with a real API lookup.
+
+// const studios = await fetch( `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug.slug}`,{
+//   cache: "no-store"
+// },
+// )
+// const studiosData = await studios.json()
+// console.log(studiosData, 'studiosdata')
 const StudioDetailsPage = async ({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) => {
-  const { slug } = await params;
-  // fetch data here — replace getStudioBySlug(slug) with a real API lookup.
-  const studio = getStudioBySlug(slug);
-  if (!studio) notFound();
+ const { slug } = await params;
 
-  const related = getRelatedStudios(studio, 3);
-  const reviews = reviewsFor(studio.id);
+const response = await fetch(
+  `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
+  {
+    cache: "no-store",
+  }
+);
+
+if (!response.ok) {
+  notFound();
+}
+
+const studioData: Studio = await response.json();
+
+const studioId = studioData._id ?? studioData.id;
+
+if (!studioId) {
+  notFound();
+}
+
+const studio: Studio = {
+  ...studioData,
+  id: studioData._id ?? studioData.id ?? "",
+};
+ const related = getRelatedStudios(studio, 3);
+const reviews = studio.reviewCount > 0 ? reviewsFor(studio.id) : [];
   const specs = [
     { icon: UsersIcon, label: "Capacity", value: `${studio.capacity} people` },
     { icon: RulerIcon, label: "Floor area", value: `${studio.size} m²` },
@@ -190,7 +236,8 @@ const StudioDetailsPage = async ({
           </section>
 
           {/* Host */}
-          <section aria-labelledby="host-heading">
+         {studio.host && (
+  <section aria-labelledby="host-heading">
             <h2
               id="host-heading"
               className="font-heading text-2xl font-semibold tracking-[-0.02em]"
@@ -225,6 +272,7 @@ const StudioDetailsPage = async ({
               </div>
             </div>
           </section>
+)}
 
           {/* Reviews */}
           <section aria-labelledby="reviews-heading">

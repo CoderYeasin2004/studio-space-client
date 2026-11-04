@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { Suspense } from "react";
 
 const MarketingLayout = ({
   children,
@@ -8,7 +9,9 @@ const MarketingLayout = ({
 }) => {
   return (
     <div className="flex min-h-full flex-col">
-      <Navbar />
+      <Suspense fallback={<div className="h-20" />}>
+  <Navbar />
+</Suspense>
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
