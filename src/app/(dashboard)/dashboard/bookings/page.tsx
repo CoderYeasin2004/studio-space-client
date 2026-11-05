@@ -1,41 +1,42 @@
 import type { Metadata } from "next";
 import type { Booking } from "@/types/studio";
 import { BookingsView } from "@/components/dashboard/bookings-view";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "My bookings — StudioSpace",
 };
 
-/**
- * Booking history and management — live data from the API on every request
- * (`cache: "no-store"`), same blocking-route pattern as the listings page.
- */
 export const instant = false;
 
 const BookingsPage = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const user = session?.user;
   let bookings: Booking[] = [];
 
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking`,
-      {
-        cache: "no-store",
-      },
-    );
+  if (user?.email) {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
+        {
+          cache: "no-store",
+        },
+      );
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch bookings (${response.status})`);
+      if (response.ok) {
+        const data: unknown = await response.json();
+
+        if (Array.isArray(data)) {
+          bookings = data as Booking[];
+        }
+      }
+    } catch {
+      bookings = [];
     }
-
-    const data: unknown = await response.json();
-
-    if (!Array.isArray(data)) {
-      throw new Error("Bookings response was not a list");
-    }
-
-    bookings = data as Booking[];
-  } catch (error) {
-    console.error("Failed to load bookings:", error);
   }
 
   return <BookingsView bookings={bookings} />;

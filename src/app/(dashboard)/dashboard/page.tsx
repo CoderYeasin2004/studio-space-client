@@ -102,30 +102,28 @@ const dashboardStats: DashboardStat[] = [
   },
 ];
 
-  let bookings: Booking[] = [];
+ let bookings: Booking[] = [];
 
+if (user?.email) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking`,
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
       {
         cache: "no-store",
       },
     );
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch bookings (${response.status})`);
+    if (response.ok) {
+      const data: unknown = await response.json();
+
+      if (Array.isArray(data)) {
+        bookings = data as Booking[];
+      }
     }
-
-    const data: unknown = await response.json();
-
-    if (!Array.isArray(data)) {
-      throw new Error("Bookings response was not a list");
-    }
-
-    bookings = data as Booking[];
-  } catch (error) {
-    console.error("Failed to load bookings:", error);
+  } catch {
+    bookings = [];
   }
+}
 
   const upcomingBookings = bookings.filter(
     (b) => b.status === "confirmed" || b.status === "pending",
