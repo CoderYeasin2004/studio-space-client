@@ -103,18 +103,42 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
     setQuery("");
   };
 
-  const cancelBooking = (booking: Booking) => {
-    setRows((prev) =>
-      prev.map((b) =>
-        b.id === booking.id ? { ...b, status: "cancelled" as const } : b,
-      ),
+ const cancelBooking = async (booking: Booking) => {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}`,
+      {
+        method: "DELETE",
+      },
     );
+
+    if (!response.ok) {
+      throw new Error("Failed to cancel booking");
+    }
+
+    const result = await response.json();
+
+    if (!result.acknowledged || result.deletedCount === 0) {
+      throw new Error("Booking was not deleted");
+    }
+
+    setRows((prev) =>
+      prev.filter((b) => b.id !== booking.id),
+    );
+
     toast.add({
-      type: "warning",
+      type: "success",
       title: "Booking cancelled",
-      description: `${booking.studioName} on ${formatIsoDate(booking.date)} was cancelled.`,
+      description: `${booking.studioName} booking has been removed.`,
     });
-  };
+  } catch {
+    toast.add({
+      type: "error",
+      title: "Cancellation failed",
+      description: "Could not cancel your booking. Please try again.",
+    });
+  }
+};
 
   return (
     <div className="flex flex-col gap-7">
