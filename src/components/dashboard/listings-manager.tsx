@@ -47,17 +47,52 @@ export const ListingsManager = ({ listings }: { listings: Studio[] }) => {
   const [items, setItems] = React.useState<Studio[]>(listings);
   const [deleting, setDeleting] = React.useState<Studio | null>(null);
 
-  const confirmDelete = () => {
-    if (!deleting) return;
-    setItems((prev) => prev.filter((s) => s.id !== deleting.id));
+const confirmDelete = async () => {
+  if (!deleting?.id) {
+    toast.add({
+      type: "error",
+      title: "Listing ID missing",
+    });
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(deleting.id)}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to delete listing");
+    }
+
+    const result = await response.json();
+
+    if (!result.acknowledged || result.deletedCount === 0) {
+      throw new Error("Listing was not deleted");
+    }
+
+    setItems((prev) =>
+      prev.filter((studio) => studio.id !== deleting.id),
+    );
+
     toast.add({
       type: "success",
       title: "Listing deleted",
       description: `${deleting.name} was removed from your listings.`,
     });
+  } catch {
+    toast.add({
+      type: "error",
+      title: "Delete failed",
+      description: "Could not delete your listing. Please try again.",
+    });
+  } finally {
     setDeleting(null);
-  };
-
+  }
+};
   const togglePause = (studio: Studio) => {
     const next: ListingStatus = studio.status === "live" ? "paused" : "live";
     setItems((prev) =>
