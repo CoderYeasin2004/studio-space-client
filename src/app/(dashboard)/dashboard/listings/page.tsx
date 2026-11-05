@@ -1,41 +1,48 @@
-
+import { headers } from "next/headers";
 import Link from "next/link";
 import { PlusIcon } from "lucide-react";
+import type { Metadata } from "next";
+
+import { auth } from "@/lib/auth";
 import type { Studio } from "@/types/studio";
 import { ListingsManager } from "@/components/dashboard/listings-manager";
 import { Button } from "@/components/ui/button";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "My listings — StudioSpace",
 };
 
-/**
- * The listings page reads live data from the API on every request
- * (`cache: "no-store"`), so there is no static shell to prerender.
- * Same blocking-route pattern as the edit route.
- */
 export const instant = false;
 
 const ListingsPage = async () => {
+  // Get logged-in user's session
+  const session = await auth.api.getSession({
+  headers: await headers(),
+});
+
+  // Check authentication
+  if (!session?.user?.email) {
+    return <p>Please login to see your listings.</p>;
+  }
+
   let listings: Studio[] = [];
 
   try {
+    // Fetch only logged-in user's studios
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studios/${encodeURIComponent(session.user.email)}`,
       {
         cache: "no-store",
       },
     );
 
     if (!response.ok) {
-      throw new Error("Failed to fetch studios");
+      throw new Error("Failed to fetch your listings");
     }
 
     listings = await response.json();
-    console.log("First Listing:", listings[0]);
-console.log("First Listing Slug:", listings[0]?.slug);
   } catch (error) {
-    console.error("Failed to load listings:", error);
+    console.error("Failed to load my listings:", error);
   }
 
   const live = listings.filter((s) => s.status === "live").length;
@@ -69,10 +76,10 @@ console.log("First Listing Slug:", listings[0]?.slug);
         </Button>
       </div>
 
-     <ListingsManager
-  key={listings.map((studio) => studio._id ?? studio.id ?? studio.slug).join("-")}
-  listings={listings}
-/>
+      <ListingsManager
+        key={listings.map((studio) => studio._id ?? studio.id ?? studio.slug).join("-")}
+        listings={listings}
+      />
     </div>
   );
 };
