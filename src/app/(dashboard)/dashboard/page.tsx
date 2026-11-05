@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ArrowRightIcon, CalendarIcon, PlusIcon } from "lucide-react";
-import type { Booking, DashboardStat, Studio } from "@/types/studio";
-import { bookingTrend, recentActivity } from "@/data/bookings";
+import type {
+  ActivityEvent,
+  Booking,
+  DashboardStat,
+  Studio,
+} from "@/types/studio";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { BookingTrendChart } from "@/components/dashboard/booking-trend-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
@@ -26,7 +30,41 @@ export const metadata = {
  * Bookings load live from the API on every request (`cache: "no-store"`),
  * same blocking-route pattern as the listings page.
  */
+
 export const instant = false;
+
+type TimestampedStudio = Studio & {
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type TimestampedBooking = Booking & {
+  createdAt?: string;
+  confirmedAt?: string;
+};
+
+
+const formatActivityTime = (value: string) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Unknown date";
+
+  const diff = Date.now() - date.getTime();
+
+  if (diff < 60_000) return "Just now";
+  if (diff < 3_600_000)
+    return `${Math.floor(diff / 60_000)} minutes ago`;
+  if (diff < 86_400_000)
+    return `${Math.floor(diff / 3_600_000)} hours ago`;
+  if (diff < 604_800_000)
+    return `${Math.floor(diff / 86_400_000)} days ago`;
+
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+};
+
 
 const DashboardPage = async () => {
   const session = await auth.api.getSession({
@@ -125,9 +163,133 @@ if (user?.email) {
   }
 }
 
-  const upcomingBookings = bookings.filter(
-    (b) => b.status === "confirmed" || b.status === "pending",
+ 
+const upcomingBookings = bookings.filter(
+  (b) => b.status === "confirmed" || b.status === "pending",
+);
+
+const validBookings = bookings.filter(
+  (booking) => booking.status !== "cancelled",
+);
+
+const now = new Date();
+
+// Real booking trend
+const bookingTrend = Array.from({ length: 6 }, (_, index) => {
+  const monthDate = new Date(
+    now.getFullYear(),
+    now.getMonth() - 5 + index,
+    1,
   );
+
+  const monthKey = `${monthDate.getFullYear()}-${String(
+    monthDate.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const monthlyBookings = validBookings.filter(
+    (booking) => booking.date.slice(0, 7) === monthKey,
+  );
+
+  return {
+    month: monthDate.toLocaleDateString("en-US", {
+      month: "short",
+    }),
+    bookings: monthlyBookings.length,
+    hours: monthlyBookings.reduce(
+      (total, booking) => total + Number(booking.hours || 0),
+      0,
+    ),
+  };
+});
+
+// Real recent activity
+const activities: (ActivityEvent & { sortAt: number })[] = [];
+
+const addActivity = (
+  event: Omit<ActivityEvent, "timestamp">,
+  dateValue?: string,
+) => {
+  if (!dateValue) return;
+
+  const timestamp = new Date(dateValue).getTime();
+
+  if (!Number.isFinite(timestamp)) return;
+
+  activities.push({
+    ...event,
+    timestamp: formatActivityTime(dateValue),
+    sortAt: timestamp,
+  });
+};
+
+// Booking activities
+bookings.forEach((booking) => {
+  const item = booking as TimestampedBooking;
+
+  addActivity(
+    {
+      id: `${item.id}-requested`,
+      label: "Booking requested",
+      detail: `${item.studioName} · ${item.date}`,
+      icon: "calendar-check",
+    },
+    item.createdAt,
+  );
+
+  addActivity(
+    {
+      id: `${item.id}-confirmed`,
+      label: "Booking confirmed",
+      detail: `${item.studioName} · ${item.date}`,
+      icon: "calendar-check",
+    },
+    item.confirmedAt,
+  );
+});
+
+// Listing activities
+myStudios.forEach((studio) => {
+  const item = studio as TimestampedStudio;
+
+  addActivity(
+    {
+      id: `${item.id ?? item._id}-created`,
+      label: "Listing created",
+      detail: `${item.name} · ${item.city}`,
+      icon: "building",
+    },
+    item.createdAt,
+  );
+
+  const created = item.createdAt
+    ? new Date(item.createdAt).getTime()
+    : 0;
+
+  const updated = item.updatedAt
+    ? new Date(item.updatedAt).getTime()
+    : 0;
+
+  if (updated && (!created || updated - created > 1000)) {
+    addActivity(
+      {
+        id: `${item.id ?? item._id}-updated`,
+        label: "Listing updated",
+        detail: `${item.name} · ${item.city}`,
+        icon: "pencil",
+      },
+      item.updatedAt,
+    );
+  }
+});
+
+
+
+
+const recentActivity: ActivityEvent[] = activities
+  .sort((a, b) => b.sortAt - a.sortAt)
+  .slice(0, 5)
+  .map(({ sortAt, ...event }) => event);
+
 
   return (
     <div className="flex flex-col gap-7">
@@ -139,8 +301,7 @@ if (user?.email) {
             Welcome back, {user?.name || "Creator"}.
           </h2>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Your spaces are booked 12% more than last month. Here&apos;s the
-            shape of it.
+            Here&apos;s an overview of your studios and recent activity.
           </p>
         </div>
         <Button

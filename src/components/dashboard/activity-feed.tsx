@@ -1,4 +1,5 @@
 import {
+  Building2Icon,
   CalendarCheckIcon,
   HeartIcon,
   PencilIcon,
@@ -15,6 +16,7 @@ const icons: Record<string, LucideIcon> = {
   star: StarIcon,
   pencil: PencilIcon,
   receipt: ReceiptIcon,
+  building: Building2Icon,
 };
 
 /** Vertical activity timeline for the dashboard. */

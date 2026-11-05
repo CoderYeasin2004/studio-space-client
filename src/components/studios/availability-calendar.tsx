@@ -61,40 +61,40 @@ export const AvailabilityCalendar = ({
   const [bookings, setBookings] = React.useState<BookingSlot[]>([]);
 
   // Fetch real booking data from MongoDB
- React.useEffect(() => {
-  if (!studioId) return;
+  React.useEffect(() => {
+    if (!studioId) return;
 
-  let active = true;
+    let active = true;
 
-  const loadBookings = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
-        {
-          cache: "no-store",
-        },
-      );
+    const loadBookings = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
+          {
+            cache: "no-store",
+          },
+        );
 
-      if (!response.ok) return;
+        if (!response.ok) return;
 
-      const data: unknown = await response.json();
+        const data: unknown = await response.json();
 
-      if (active && Array.isArray(data)) {
-        setBookings(data as BookingSlot[]);
+        if (active && Array.isArray(data)) {
+          setBookings(data as BookingSlot[]);
+        }
+      } catch {
+        if (active) {
+          setBookings([]);
+        }
       }
-    } catch {
-      if (active) {
-        setBookings([]);
-      }
-    }
-  };
+    };
 
-  loadBookings();
+    loadBookings();
 
-  return () => {
-    active = false;
-  };
-}, [studioId]);
+    return () => {
+      active = false;
+    };
+  }, [studioId]);
   const todayIso = dayOffset(0);
   const lastIso = dayOffset(59);
 
