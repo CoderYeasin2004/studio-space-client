@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MenuIcon } from "lucide-react";
 import { cn } from "cn";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -16,6 +15,29 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import {
+  MenuIcon,
+  ChevronDownIcon,
+  LayoutDashboardIcon,
+  LayoutGridIcon,
+  CalendarDaysIcon,
+  UserRoundIcon,
+  ArrowUpRightIcon,
+  LogOutIcon,
+} from "lucide-react";
+
+import { useSession, signOut } from "@/lib/auth-client";
+import { toast } from "@/components/ui/toast";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const links = [
   { label: "Home", href: "/" },
@@ -30,6 +52,30 @@ const links = [
  */
 export const Navbar = () => {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const handleLogout = async () => {
+  try {
+    await signOut();
+
+    toast.add({
+      type: "success",
+      title: "Logged out successfully",
+    });
+
+    router.push("/login");
+    router.refresh();
+  } catch {
+    toast.add({
+      type: "warning",
+      title: "Logout failed",
+      description: "Please try again.",
+    });
+  }
+};
+
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
@@ -90,20 +136,103 @@ export const Navbar = () => {
 
         {/* ---------- Actions ---------- */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <ThemeToggle />
-          <Button
-            render={<Link href="/login" />}
-            variant="ghost"
-            className="hidden text-muted-foreground sm:inline-flex"
+  <ThemeToggle />
+
+  {user ? (
+    <div className="hidden items-center gap-2 sm:flex">
+      <DropdownMenu>
+        <div className="flex items-center gap-1">
+          {/* Avatar */}
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-border">
+            {user.image ? (
+              <Image
+                src={user.image}
+                alt={user.name || "Profile"}
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-sm font-semibold">
+                {user.name?.charAt(0).toUpperCase() || "U"}
+              </span>
+            )}
+          </div>
+
+          {/* Chevron */}
+          <DropdownMenuTrigger
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
+            aria-label="Open profile menu"
           >
-            Log in
-          </Button>
-          <Button
-            render={<Link href="/register" />}
-            className="hidden rounded-full px-5 sm:inline-flex"
-          >
-            Sign up
-          </Button>
+            <ChevronDownIcon className="h-4 w-4" />
+          </DropdownMenuTrigger>
+        </div>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem
+  onClick={() => router.push("/dashboard")}
+>
+  <LayoutDashboardIcon className="mr-2 h-4 w-4" />
+  Dashboard
+</DropdownMenuItem>
+  <DropdownMenuItem
+    onClick={() => router.push("/dashboard/listings")}
+  >
+    
+    <LayoutGridIcon className="mr-2 h-4 w-4" />
+    My Listings
+  </DropdownMenuItem>
+
+  <DropdownMenuItem
+    onClick={() => router.push("/dashboard/bookings")}
+  >
+    <CalendarDaysIcon className="mr-2 h-4 w-4" />
+    My Bookings
+  </DropdownMenuItem>
+
+  <DropdownMenuItem
+    onClick={() => router.push("/dashboard/profile")}
+  >
+    <UserRoundIcon className="mr-2 h-4 w-4" />
+    Profile Settings
+  </DropdownMenuItem>
+
+  <DropdownMenuSeparator />
+
+  <DropdownMenuItem onClick={() => router.push("/")}>
+    <ArrowUpRightIcon className="mr-2 h-4 w-4" />
+    Back to Site
+  </DropdownMenuItem>
+
+  <DropdownMenuSeparator />
+
+  <DropdownMenuItem
+    variant="destructive"
+    onClick={handleLogout}
+  >
+    <LogOutIcon className="mr-2 h-4 w-4" />
+    Logout
+  </DropdownMenuItem>
+</DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+) : (
+  <>
+    <Button
+      render={<Link href="/login" />}
+      variant="ghost"
+      className="hidden text-muted-foreground sm:inline-flex"
+    >
+      Log in
+    </Button>
+
+    <Button
+      render={<Link href="/register" />}
+      className="hidden rounded-full px-5 sm:inline-flex"
+    >
+      Sign up
+    </Button>
+  </>
+)}
 
           {/* ---------- Mobile trigger ---------- */}
           <Sheet open={open} onOpenChange={setOpen}>
@@ -146,23 +275,68 @@ export const Navbar = () => {
                 ))}
               </nav>
 
-              <div className="mt-auto flex flex-col gap-2 border-t border-border p-5">
-                <Button
-                  render={<Link href="/login" />}
-                  variant="outline"
-                  className="h-11 w-full"
-                  onClick={() => setOpen(false)}
-                >
-                  Log in
-                </Button>
-                <Button
-                  render={<Link href="/register" />}
-                  className="h-11 w-full rounded-full"
-                  onClick={() => setOpen(false)}
-                >
-                  Create account
-                </Button>
-              </div>
+             <div className="mt-auto flex flex-col gap-2 border-t border-border p-5">
+  {user ? (
+    <>
+      <Button
+        render={<Link href="/dashboard/listings" />}
+        variant="outline"
+        className="h-11 w-full"
+        onClick={() => setOpen(false)}
+      >
+        My Listings
+      </Button>
+
+      <Button
+        render={<Link href="/dashboard/bookings" />}
+        variant="outline"
+        className="h-11 w-full"
+        onClick={() => setOpen(false)}
+      >
+        My Bookings
+      </Button>
+
+      <Button
+        render={<Link href="/dashboard/profile" />}
+        variant="outline"
+        className="h-11 w-full"
+        onClick={() => setOpen(false)}
+      >
+        Profile Settings
+      </Button>
+
+      <Button
+        variant="destructive"
+        className="h-11 w-full"
+        onClick={() => {
+          setOpen(false);
+          handleLogout();
+        }}
+      >
+        Log out
+      </Button>
+    </>
+  ) : (
+    <>
+      <Button
+        render={<Link href="/login" />}
+        variant="outline"
+        className="h-11 w-full"
+        onClick={() => setOpen(false)}
+      >
+        Log in
+      </Button>
+
+      <Button
+        render={<Link href="/register" />}
+        className="h-11 w-full rounded-full"
+        onClick={() => setOpen(false)}
+      >
+        Create account
+      </Button>
+    </>
+  )}
+</div>
             </SheetContent>
           </Sheet>
         </div>

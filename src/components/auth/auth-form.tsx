@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/toast";
+import { authClient } from "@/lib/auth-client";
 
 type Mode = "login" | "register";
 
@@ -72,27 +73,97 @@ export const AuthForm = ({ mode }: { mode: Mode }) => {
 
     return ok;
   };
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!validate()) return;
-
+const handleGoogleLogin = async () => {
+  try {
     setSubmitting(true);
 
-    // Simulated request — no network, no credentials stored anywhere.
-    window.setTimeout(() => {
-      setSubmitting(false);
-      toast.add({
-        type: "success",
-        title: isLogin ? "Welcome back" : "Account created",
-        description: isLogin
-          ? "You're signed in to the demo dashboard."
-          : "Your demo account is ready — let's find you a studio.",
-      });
-      router.push("/dashboard");
-    }, 550);
-  };
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
+    });
 
+    if (error) {
+      toast.add({
+        type: "warning",
+        title: "Google login failed",
+        description: error.message,
+      });
+
+      setSubmitting(false);
+    }
+  } catch {
+    toast.add({
+      type: "warning",
+      title: "Something went wrong",
+      description: "Unable to continue with Google.",
+    });
+
+    setSubmitting(false);
+  }
+};
+ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+
+  if (!validate()) return;
+
+  setSubmitting(true);
+
+ try {
+  if (isLogin) {
+    // Login API
+    const { error } = await authClient.signIn.email({
+      email: email.value.trim(),
+      password: password.value,
+    });
+
+    if (error) {
+      toast.add({
+        type: "warning",
+        title: "Login failed",
+        description: error.message,
+      });
+      return;
+    }
+  } else {
+    // Signup API
+    const { error } = await authClient.signUp.email({
+      name: name.value.trim(),
+      email: email.value.trim(),
+      password: password.value,
+    });
+
+    if (error) {
+      toast.add({
+        type: "warning",
+        title: "Signup failed",
+        description: error.message,
+      });
+      return;
+    }
+  }
+
+  // Both Login and Signup success
+  toast.add({
+    type: "success",
+    title: isLogin ? "Welcome back!" : "Account created",
+    description: isLogin
+      ? "You are now logged in."
+      : "Your account is ready.",
+  });
+
+  router.push("/dashboard");
+
+} catch (error) {
+  toast.add({
+    type: "warning",
+    title: "Something went wrong",
+    description: "Please try again later.",
+  });
+} finally {
+  setSubmitting(false);
+}
+};
+    
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       {/* ---------- Name (register only) ---------- */}
@@ -200,7 +271,7 @@ export const AuthForm = ({ mode }: { mode: Mode }) => {
         )}
         {!isLogin && (
           <p className="text-xs text-muted-foreground">
-            At least 8 characters. This is a demo — nothing is stored.
+            At least 8 characters.
           </p>
         )}
       </div>
@@ -257,8 +328,7 @@ export const AuthForm = ({ mode }: { mode: Mode }) => {
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Demo build — any valid-looking email and an 8-character password will
-        work.
+         Sign in securely to access your StudioSpace account.
       </p>
 
       <div
@@ -273,21 +343,15 @@ export const AuthForm = ({ mode }: { mode: Mode }) => {
       </div>
 
       <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="h-12 w-full rounded-full text-[15px]"
-        onClick={() =>
-          toast.add({
-            type: "info",
-            title: "Single sign-on is demo-only",
-            description: "Social login isn't connected in this frontend build.",
-          })
-        }
-      >
-        Continue with Google
-      </Button>
-
+  type="button"
+  variant="outline"
+  size="lg"
+  className="h-12 w-full rounded-full text-[15px]"
+  onClick={handleGoogleLogin}
+  disabled={submitting}
+>
+  {submitting ? "Connecting to Google..." : "Continue with Google"}
+</Button>
       <p className="text-center text-xs text-muted-foreground">
         Prefer to look around first?{" "}
         <Link
