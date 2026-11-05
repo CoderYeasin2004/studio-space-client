@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ArrowRightIcon, CalendarIcon, PlusIcon } from "lucide-react";
-import type { Booking } from "@/types/studio";
-import { bookingTrend, dashboardStats, recentActivity } from "@/data/bookings";
+import type { Booking, DashboardStat, Studio } from "@/types/studio";
+import { bookingTrend, recentActivity } from "@/data/bookings";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { BookingTrendChart } from "@/components/dashboard/booking-trend-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { BookingTable } from "@/components/dashboard/booking-table";
 import { FavoritesPanel } from "@/components/dashboard/favorites-panel";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import {
   Card,
   CardContent,
@@ -28,6 +29,79 @@ export const metadata = {
 export const instant = false;
 
 const DashboardPage = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const user = session?.user;
+  let myStudios: Studio[] = [];
+
+try {
+  if (user?.email) {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studios/${encodeURIComponent(user.email)}`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch studios");
+    }
+
+    const data: unknown = await response.json();
+
+    if (Array.isArray(data)) {
+      myStudios = data as Studio[];
+    }
+  }
+} catch {
+  myStudios = [];
+}
+
+const liveCount = myStudios.filter(
+  (studio) => studio.status === "live",
+).length;
+
+const draftCount = myStudios.filter(
+  (studio) => studio.status === "draft",
+).length;
+
+const pausedCount = myStudios.filter(
+  (studio) => studio.status === "paused",
+).length;
+
+const dashboardStats: DashboardStat[] = [
+  {
+    label: "Total Listings",
+    value: String(myStudios.length),
+    delta: "Your studios",
+    trend: "neutral",
+    icon: "listings",
+  },
+  {
+    label: "Live Studios",
+    value: String(liveCount),
+    delta: "Published",
+    trend: "neutral",
+    icon: "live",
+  },
+  {
+    label: "Draft Listings",
+    value: String(draftCount),
+    delta: "Unpublished",
+    trend: "neutral",
+    icon: "draft",
+  },
+  {
+    label: "Paused Listings",
+    value: String(pausedCount),
+    delta: "Hidden",
+    trend: "neutral",
+    icon: "paused",
+  },
+];
+
   let bookings: Booking[] = [];
 
   try {
@@ -64,7 +138,7 @@ const DashboardPage = async () => {
         <div>
           <span className="eyebrow text-primary">Overview</span>
           <h2 className="mt-2.5 font-heading text-3xl leading-tight font-semibold tracking-[-0.03em] text-balance sm:text-4xl">
-            Welcome back, Alex.
+            Welcome back, {user?.name || "Creator"}.
           </h2>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
             Your spaces are booked 12% more than last month. Here&apos;s the

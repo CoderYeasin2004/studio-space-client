@@ -1,23 +1,23 @@
 import {
-  CalendarIcon,
-  ClockIcon,
-  HeartIcon,
+  Building2Icon,
+  CheckCircle2Icon,
+  FileTextIcon,
+  PauseCircleIcon,
   TrendingDownIcon,
   TrendingUpIcon,
-  WalletIcon,
   MinusIcon,
+  CalendarIcon,
 } from "lucide-react";
 import { cn } from "cn";
 import type { DashboardStat } from "@/types/studio";
 import type { LucideIcon } from "lucide-react";
 
 const icons: Record<string, LucideIcon> = {
-  calendar: CalendarIcon,
-  clock: ClockIcon,
-  heart: HeartIcon,
-  wallet: WalletIcon,
+  listings: Building2Icon,
+  live: CheckCircle2Icon,
+  draft: FileTextIcon,
+  paused: PauseCircleIcon,
 };
-
 /** One KPI tile on the dashboard overview. */
 export const StatCard = ({ stat }: { stat: DashboardStat }) => {
   const Icon = icons[stat.icon] ?? CalendarIcon;

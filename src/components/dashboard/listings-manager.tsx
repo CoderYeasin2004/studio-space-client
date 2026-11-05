@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -46,6 +47,7 @@ import { toast } from "@/components/ui/toast";
 export const ListingsManager = ({ listings }: { listings: Studio[] }) => {
   const [items, setItems] = React.useState<Studio[]>(listings);
   const [deleting, setDeleting] = React.useState<Studio | null>(null);
+  const router = useRouter();
 
 const confirmDelete = async () => {
   if (!deleting?.id) {
@@ -75,14 +77,16 @@ const confirmDelete = async () => {
     }
 
     setItems((prev) =>
-      prev.filter((studio) => studio.id !== deleting.id),
-    );
+  prev.filter((studio) => studio.id !== deleting.id),
+);
 
-    toast.add({
-      type: "success",
-      title: "Listing deleted",
-      description: `${deleting.name} was removed from your listings.`,
-    });
+router.refresh();
+
+toast.add({
+  type: "success",
+  title: "Listing deleted",
+  description: `${deleting.name} was removed from your listings.`,
+});
   } catch {
     toast.add({
       type: "error",

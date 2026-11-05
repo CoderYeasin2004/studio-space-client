@@ -44,6 +44,9 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
   const fee = Math.round(subtotal * 0.08);
   const total = subtotal + fee;
   const endHour = startHour + hours;
+  const availableStartHours = START_HOURS.filter(
+  (hour) => hour + hours <= 23,
+);
 
   const handleBook = async () => {
     if (!date) {
@@ -81,9 +84,21 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
         },
       );
 
-      if (!response.ok) {
-        throw new Error(`Booking request failed (${response.status})`);
-      }
+    if (response.status === 409) {
+  const data = await response.json();
+
+  toast.add({
+    type: "warning",
+    title: "Time slot unavailable",
+    description: data.message,
+  });
+
+  return;
+}
+
+if (!response.ok) {
+  throw new Error("Booking failed");
+}
 
       toast.add({
         type: "success",
@@ -139,11 +154,11 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
         </span>
       </div>
 
-      <AvailabilityCalendar
-        studioId={studio.id ?? studio._id ?? ""}
-        selected={date}
-        onSelect={setDate}
-      />
+     <AvailabilityCalendar
+  studioId={studio._id ?? studio.id ?? ""}
+  selected={date}
+  onSelect={setDate}
+/>
 
       {/* Time controls */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -155,14 +170,21 @@ export const BookingCard = ({ studio }: { studio: Studio }) => {
             Start time
           </label>
           <Select
-            value={String(startHour)}
-            onValueChange={(v) => setStartHour(Number(v ?? 10))}
-          >
+  value={String(hours)}
+  onValueChange={(v) => {
+    const nextHours = Number(v ?? 2);
+    setHours(nextHours);
+
+    if (startHour + nextHours > 23) {
+      setStartHour(23 - nextHours);
+    }
+  }}
+>
             <SelectTrigger id="start-time" className="h-9 w-full bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {START_HOURS.map((h) => (
+             {availableStartHours.map((h) => (
                 <SelectItem key={h} value={String(h)}>
                   {label(h)}
                 </SelectItem>

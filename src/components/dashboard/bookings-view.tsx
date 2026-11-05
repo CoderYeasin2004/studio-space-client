@@ -102,43 +102,77 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
     setStatus("all");
     setQuery("");
   };
+  const confirmBooking = async (booking: Booking) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}/confirm`,
+        { method: "PATCH" },
+      );
 
- const cancelBooking = async (booking: Booking) => {
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}`,
-      {
-        method: "DELETE",
-      },
-    );
+      if (!response.ok) {
+        throw new Error("Confirmation failed");
+      }
 
-    if (!response.ok) {
-      throw new Error("Failed to cancel booking");
+      const result = await response.json();
+
+      if (!result.modifiedCount) {
+        throw new Error("Booking was not confirmed");
+      }
+
+      setRows((prev) =>
+        prev.map((b) =>
+          b.id === booking.id ? { ...b, status: "confirmed" } : b,
+        ),
+      );
+
+      toast.add({
+        type: "success",
+        title: "Booking confirmed",
+        description: `${booking.studioName} booking confirmed.`,
+      });
+    } catch {
+      toast.add({
+        type: "error",
+        title: "Confirmation failed",
+        description: "Could not confirm booking.",
+      });
     }
+  };
 
-    const result = await response.json();
+  const cancelBooking = async (booking: Booking) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}`,
+        {
+          method: "DELETE",
+        },
+      );
 
-    if (!result.acknowledged || result.deletedCount === 0) {
-      throw new Error("Booking was not deleted");
+      if (!response.ok) {
+        throw new Error("Failed to cancel booking");
+      }
+
+      const result = await response.json();
+
+      if (!result.acknowledged || result.deletedCount === 0) {
+        throw new Error("Booking was not deleted");
+      }
+
+      setRows((prev) => prev.filter((b) => b.id !== booking.id));
+
+      toast.add({
+        type: "success",
+        title: "Booking cancelled",
+        description: `${booking.studioName} booking has been removed.`,
+      });
+    } catch {
+      toast.add({
+        type: "error",
+        title: "Cancellation failed",
+        description: "Could not cancel your booking. Please try again.",
+      });
     }
-
-    setRows((prev) =>
-      prev.filter((b) => b.id !== booking.id),
-    );
-
-    toast.add({
-      type: "success",
-      title: "Booking cancelled",
-      description: `${booking.studioName} booking has been removed.`,
-    });
-  } catch {
-    toast.add({
-      type: "error",
-      title: "Cancellation failed",
-      description: "Could not cancel your booking. Please try again.",
-    });
-  }
-};
+  };
 
   return (
     <div className="flex flex-col gap-7">
@@ -347,6 +381,15 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
 
                       <TableCell className="pr-4">
                         <div className="flex items-center justify-end gap-1.5">
+                          {booking.status === "pending" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => confirmBooking(booking)}
+                            >
+                              Confirm
+                            </Button>
+                          )}
                           {cancellable && (
                             <Button
                               variant="ghost"
