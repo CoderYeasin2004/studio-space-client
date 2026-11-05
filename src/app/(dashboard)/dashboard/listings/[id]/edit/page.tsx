@@ -82,8 +82,7 @@ const EditListing = async ({
           Edit {studio.name}
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Update the details, adjust what&apos;s included, then save. Changes
-          stay local to this demo session.
+          Update the details, adjust what&apos;s included, then save. Changes will be saved to your studio listing.
         </p>
       </div>
 
@@ -92,15 +91,22 @@ const EditListing = async ({
   );
 };
 
-/**
- * Temporary stand-in until the API lands: an empty list, so every id misses
- * and hits the 404 above. Replace the array with your request — this becomes
- * the single place the edit route reads a listing from.
- */
+
 const getListing = async (id: string): Promise<Studio | undefined> => {
-  // fetch data here — e.g.
-  //   const listings = await fetch(`${API}/listings`).then(r => r.json())
-  
-  const listings: Studio[] = [];
-  return listings.find((studio) => studio.id === id);
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(id)}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (response.status === 404) {
+    return undefined;
+  }
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch studio");
+  }
+
+  return response.json();
 };

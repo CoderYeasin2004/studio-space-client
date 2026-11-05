@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { useSession } from "@/lib/auth-client";
 import {
   Select,
   SelectContent,
@@ -100,6 +101,9 @@ export const ListingForm = ({
   listingId?: string;
 }) => {
   const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
+
   const isEdit = Boolean(initial);
 
   const [form, setForm] = React.useState<ListingFormState>(
@@ -170,6 +174,14 @@ export const ListingForm = ({
   // ---------- Submit Form ----------
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) {
+  toast.add({
+    type: "warning",
+    title: "Please login first",
+    description: "You need to login before creating a listing.",
+  });
+  return;
+}
 
     // Validate before sending anything to MongoDB
     if (form.name.trim().length < 3) {
@@ -257,19 +269,37 @@ export const ListingForm = ({
       tags: initial?.tags ?? [],
       ...(initial?.host && { host: initial.host }),
     };
+       if (isEdit && !listingId) {
+      toast.add({
+        type: "error",
+        title: "Listing ID missing",
+      });
+      return;
+    }
+
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newStudio),
+      const endpoint =
+        isEdit && listingId
+          ? `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(listingId)}`
+          : `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`;
+
+      const response = await fetch(endpoint, {
+        method: isEdit ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(
+          isEdit
+            ? newStudio
+            : {
+                ...newStudio,
+                creatorId: user.id,
+                creatorEmail: user.email,
+              },
+        ),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to save studio");
@@ -277,24 +307,26 @@ export const ListingForm = ({
 
       const data = await response.json();
 
-      if (!data.acknowledged) {
+      if (!data.acknowledged || (isEdit && data.matchedCount === 0)) {
         throw new Error("Studio was not saved");
       }
 
       toast.add({
         type: "success",
-        title: "Studio added successfully!",
-        description: `${form.name} has been saved.`,
+        title: isEdit
+          ? "Studio updated successfully!"
+          : "Studio added successfully!",
+        description: `${form.name} has been ${isEdit ? "updated" : "saved"}.`,
       });
 
       router.push("/dashboard/listings");
-    } catch (error) {
-      console.error("Studio submission error:", error);
-
+    } catch {
       toast.add({
         type: "error",
         title: "Something went wrong",
-        description: "Could not save your studio. Please try again.",
+        description: isEdit
+          ? "Could not update your studio. Please try again."
+          : "Could not save your studio. Please try again.",
       });
     } finally {
       setSaving(false);
@@ -656,7 +688,7 @@ export const ListingForm = ({
                 >
                   <CheckIcon className="size-4" />
 
-                  {saving ? "Saving…" : "Publish Listing"}
+                  {saving ? "Saving…" : isEdit ? "Publish Changes" : "Publish Listing"}
                 </Button>
 
                 <Button
@@ -670,7 +702,7 @@ export const ListingForm = ({
                 >
                   <FileTextIcon className="size-4" />
 
-                  {saving ? "Saving…" : "Save as Draft"}
+                  {saving ? "Saving…" : isEdit ? "Save Changes as Draft" : "Save as Draft"}
                 </Button>
 
                 <Button
