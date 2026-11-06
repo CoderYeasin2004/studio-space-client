@@ -2,26 +2,111 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRightIcon,
+  Building2Icon,
+  Circle,
   MapPinIcon,
   StarIcon,
   VerifiedIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "cn";
 import { img } from "@/lib/images";
 import { ApertureMark } from "@/components/brand/logo";
+import type { Studio } from "@/types/studio";
 
-const stats = [
-  { value: "1,240+", label: "Studios" },
-  { value: "38", label: "Cities" },
-  { value: "4.9", label: "Avg. rating" },
-];
+interface PlatformStats {
+  totalStudios: number;
+  totalCities: number;
+  averageRating: number;
+}
+
+async function fetchStats(): Promise<PlatformStats | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  if (!baseUrl) {
+    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/stats`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error(`Stats request failed (${response.status})`);
+      return null;
+    }
+
+    const data: unknown = await response.json();
+
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !("totalStudios" in data) ||
+      !("totalCities" in data) ||
+      !("averageRating" in data)
+    ) {
+      console.error("Stats response was malformed");
+      return null;
+    }
+
+    return data as PlatformStats;
+  } catch (error) {
+    console.error("Failed to load stats:", error);
+    return null;
+  }
+}
+
+async function fetchHeroStudio(): Promise<Studio | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  if (!baseUrl) {
+    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/studios/hero`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error(`Hero studio request failed (${response.status})`);
+      return null;
+    }
+
+    const data: unknown = await response.json();
+
+    if (!data || typeof data !== "object") {
+      return null;
+    }
+
+    const studio = data as Studio;
+    if (!studio.slug || !studio.name || !studio.location || !studio.images?.[0]) {
+      return null;
+    }
+
+    return studio;
+  } catch (error) {
+    console.error("Failed to load hero studio:", error);
+    return null;
+  }
+}
 
 /**
  * Photography-first hero: oversized editorial headline on a narrow left
  * column, cinematic imagery bleeding off the right edge, plus a floating
  * studio card for depth. Deliberately not a centred hero.
+ *
+ * Platform statistics and the floating studio card are fetched live from
+ * the backend. Missing data is omitted rather than fabricated.
  */
-export const Hero = () => {
+export const Hero = async () => {
+  const [stats, studio] = await Promise.all([
+    fetchStats(),
+    fetchHeroStudio(),
+  ]);
+
   return (
     <section className="relative overflow-hidden pt-10 pb-16 sm:pt-14 lg:pt-16 lg:pb-24">
       {/* Soft brand wash — kept subtle so purple stays an accent */}
@@ -67,19 +152,74 @@ export const Hero = () => {
             </Button>
           </div>
 
-          {/* Stats — hairline separated, editorial */}
-          <dl className="mt-2 flex items-center gap-6 border-t border-border pt-6 sm:gap-10">
-            {stats.map((s) => (
-              <div key={s.label} className="flex flex-col gap-0.5">
-                <dt className="order-2 text-xs tracking-wide text-muted-foreground uppercase">
-                  {s.label}
-                </dt>
-                <dd className="font-heading text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
-                  {s.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {/* Stats — three compact cards */}
+          {stats && (
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <Card
+                className={cn(
+                  "rounded-xl border border-border/50 bg-card p-3 transition-all duration-300",
+                  "hover:border-primary/50 hover:shadow-sm hover:-translate-y-0.5",
+                )}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-start w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                    <Building2Icon className="size-[13px]" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Circle className="size-[11px] shrink-0 text-purple-500" />
+                    <span className="font-semibold text-base text-muted-foreground">
+                      {stats.totalStudios}
+                    </span>
+                    <span className="text-sm text-muted-foreground font-medium">
+                      Studios
+                    </span>
+                  </div>
+                </div>
+              </Card>
+              <Card
+                className={cn(
+                  "rounded-xl border border-border/50 bg-card p-3 transition-all duration-300",
+                  "hover:border-primary/50 hover:shadow-sm hover:-translate-y-0.5",
+                )}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-start w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                    <MapPinIcon className="size-[13px]" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Circle className="size-[11px] shrink-0 text-blue-500" />
+                    <span className="font-semibold text-base text-muted-foreground">
+                      {stats.totalCities}
+                    </span>
+                    <span className="text-sm text-muted-foreground font-medium">
+                      Cities
+                    </span>
+                  </div>
+                </div>
+              </Card>
+              <Card
+                className={cn(
+                  "rounded-xl border border-border/50 bg-card p-3 transition-all duration-300",
+                  "hover:border-primary/50 hover:shadow-sm hover:-translate-y-0.5",
+                )}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-start w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <StarIcon className="size-[13px]" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Circle className="size-[11px] shrink-0 text-amber-500" />
+                    <span className="font-semibold text-base text-muted-foreground">
+                      {stats.averageRating}
+                    </span>
+                    <span className="text-sm text-muted-foreground font-medium">
+                      Avg. rating
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* ---------- Imagery column ---------- */}
@@ -104,36 +244,44 @@ export const Hero = () => {
           </div>
 
           {/* Floating studio card — overlaps the main frame */}
-          <Link
-            href="/studios/lumen-daylight-loft"
-            className="group absolute -bottom-6 left-4 flex w-[min(20rem,calc(100%-2rem))] items-center gap-3 rounded-xl border border-border bg-card/95 p-2.5 pr-4 shadow-xl backdrop-blur-sm outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:ring-3 focus-visible:ring-ring/50 sm:left-8 lg:-bottom-8 lg:left-0"
-          >
-            <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-              <Image
-                src={img("1560787313-5dff3307e257", "thumb")}
-                alt="Lumen Daylight Loft"
-                fill
-                sizes="56px"
-                className="object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">
-                Lumen Daylight Loft
-              </p>
-              <p className="inline-flex items-center gap-1 truncate text-xs text-muted-foreground">
-                <MapPinIcon className="size-3 shrink-0" />
-                Shoreditch, London
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="inline-flex items-center gap-0.5 text-xs font-medium">
-                <StarIcon className="size-3 fill-current text-amber-500" />
-                4.9
-              </span>
-              <span className="text-xs text-muted-foreground">£85/hr</span>
-            </div>
-          </Link>
+          {studio && (
+            <Link
+              href={`/studios/${studio.slug}`}
+              className="group absolute -bottom-6 left-4 flex w-[min(20rem,calc(100%-2rem))] items-center gap-3 rounded-xl border border-border bg-card/95 p-2.5 pr-4 shadow-xl backdrop-blur-sm outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:ring-3 focus-visible:ring-ring/50 sm:left-8 lg:-bottom-8 lg:left-0"
+            >
+              <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                <Image
+                  src={img(studio.images[0], "thumb")}
+                  alt={studio.name}
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">
+                  {studio.name}
+                </p>
+                <p className="inline-flex items-center gap-1 truncate text-xs text-muted-foreground">
+                  <MapPinIcon className="size-3 shrink-0" />
+                  {studio.location}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-0.5">
+                {typeof studio.rating === "number" && (
+                  <span className="inline-flex items-center gap-0.5 text-xs font-medium">
+                    <StarIcon className="size-3 fill-current text-amber-500" />
+                    {studio.rating}
+                  </span>
+                )}
+                {typeof studio.hourlyPrice === "number" && (
+                  <span className="text-xs text-muted-foreground">
+                    £{studio.hourlyPrice}/hr
+                  </span>
+                )}
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </section>

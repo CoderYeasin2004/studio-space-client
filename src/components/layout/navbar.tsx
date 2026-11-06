@@ -24,8 +24,8 @@ import {
   LayoutGridIcon,
   CalendarDaysIcon,
   UserRoundIcon,
-  ArrowUpRightIcon,
   LogOutIcon,
+  Plus,
 } from "lucide-react";
 
 import { useSession, signOut } from "@/lib/auth-client";
@@ -198,9 +198,11 @@ export const Navbar = () => {
 
   <DropdownMenuSeparator />
 
-  <DropdownMenuItem onClick={() => router.push("/")}>
-    <ArrowUpRightIcon className="mr-2 h-4 w-4" />
-    Back to Site
+  <DropdownMenuItem
+    onClick={() => router.push("/dashboard/listings/new")}
+  >
+    <Plus className="mr-2 h-4 w-4" />
+    Create New Studio
   </DropdownMenuItem>
 
   <DropdownMenuSeparator />

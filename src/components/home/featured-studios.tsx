@@ -1,15 +1,57 @@
+import type { Studio } from "@/types/studio";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StudioCard } from "@/components/studio/studio-card";
-import { featuredStudios } from "@/data/studios";
 
-// fetch data here — the homepage reads the featured subset from the catalogue.
+const STUDIOS_LIMIT = 6;
+
+async function fetchFeaturedStudios(): Promise<Studio[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  if (!baseUrl) {
+    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    return [];
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/studios?limit=${STUDIOS_LIMIT}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error(`Studios request failed (${response.status})`);
+      return [];
+    }
+
+    const data: unknown = await response.json();
+
+    if (!Array.isArray(data)) {
+      console.error("Studios response was not a list");
+      return [];
+    }
+
+    const studios: Studio[] = [];
+    for (const s of (data as Studio[]).slice(0, STUDIOS_LIMIT)) {
+      const id = s._id || s.id;
+      if (id) {
+        studios.push({ ...s, id });
+      }
+    }
+    return studios;
+  } catch (error) {
+    console.error("Failed to load featured studios:", error);
+    return [];
+  }
+}
 
 /**
  * Six featured spaces in an editorial composition: one tall portrait, one
  * wide feature, and four standard cards — deliberately not a uniform grid.
+ *
+ * Data is fetched live from the studios API. Missing studios are simply
+ * omitted so the grid never receives `undefined`.
  */
-export const FeaturedStudios = () => {
-  const [first, second, ...rest] = featuredStudios;
+export const FeaturedStudios = async () => {
+  const studios = await fetchFeaturedStudios();
+  const [first, second, ...rest] = studios;
 
   return (
     <section
@@ -31,21 +73,25 @@ export const FeaturedStudios = () => {
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
         {/* Tall portrait — anchors the left column */}
-        <StudioCard
-          studio={first}
-          variant="editorial"
-          ratio="portrait"
-          priority
-          className="lg:col-span-4 lg:row-span-2"
-        />
+        {first && (
+          <StudioCard
+            studio={first}
+            variant="editorial"
+            ratio="portrait"
+            priority
+            className="lg:col-span-4 lg:row-span-2"
+          />
+        )}
 
         {/* Wide feature — top right */}
-        <StudioCard
-          studio={second}
-          variant="editorial"
-          ratio="wide"
-          className="lg:col-span-8"
-        />
+        {second && (
+          <StudioCard
+            studio={second}
+            variant="editorial"
+            ratio="wide"
+            className="lg:col-span-8"
+          />
+        )}
 
         {/* Four standard cards below — last pair widens to fill the row */}
         {rest.map((studio, index) => (
