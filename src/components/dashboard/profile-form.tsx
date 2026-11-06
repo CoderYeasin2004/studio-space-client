@@ -1,16 +1,14 @@
+
 "use client";
 
 import * as React from "react";
 import Image from "next/image";
-import { CameraIcon, CheckIcon, MapPinIcon, ShieldCheckIcon } from "lucide-react";
-import { img } from "@/lib/images";
-import { userProfile } from "@/data/bookings";
+import { CameraIcon, CheckIcon, UserRoundIcon } from "lucide-react";
+import { authClient, useSession } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -20,302 +18,287 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-interface Preferences {
-  bookingEmails: boolean;
-  marketingEmails: boolean;
-  newStudioAlerts: boolean;
-  hostAlerts: boolean;
-}
-
-const defaultPreferences: Preferences = {
-  bookingEmails: true,
-  marketingEmails: false,
-  newStudioAlerts: true,
-  hostAlerts: true,
+type ProfileUser = {
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
 };
 
-/**
- * Profile settings form. Reads the mock `userProfile` as its initial state,
- * keeps every change local and confirms with a toast — no API is involved.
- */
+const isValidImageUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
+
 export const ProfileForm = () => {
-  const [form, setForm] = React.useState({
-    name: userProfile.name,
-    email: userProfile.email,
-    role: userProfile.role,
-    location: userProfile.location,
-    bio: userProfile.bio,
-  });
-  const [prefs, setPrefs] = React.useState<Preferences>(defaultPreferences);
+  const { data: session, isPending, refetch } = useSession();
+if (isPending) {
+  return (
+    <div className="flex flex-col gap-6 animate-pulse">
+      {/* Profile Skeleton */}
+      <Card className="gap-5">
+        <CardHeader className="gap-3">
+          <div className="h-6 w-24 rounded-md bg-muted" />
+          <div className="h-4 w-64 max-w-full rounded-md bg-muted" />
+        </CardHeader>
+
+        <CardContent className="flex flex-col gap-6">
+          {/* Avatar Skeleton */}
+          <div className="flex items-center gap-4">
+            <div className="size-20 shrink-0 rounded-full bg-muted" />
+
+            <div className="flex flex-col gap-2">
+              <div className="h-4 w-32 rounded bg-muted" />
+              <div className="h-3 w-48 max-w-full rounded bg-muted" />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Form Fields Skeleton */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <div key={index} className="flex flex-col gap-2">
+                <div className="h-4 w-24 rounded bg-muted" />
+                <div className="h-10 w-full rounded-lg bg-muted" />
+              </div>
+            ))}
+
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <div className="h-4 w-36 rounded bg-muted" />
+              <div className="h-10 w-full rounded-lg bg-muted" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Buttons Skeleton */}
+      <div className="flex justify-end gap-3">
+        <div className="h-11 w-24 rounded-full bg-muted" />
+        <div className="h-11 w-36 rounded-full bg-muted" />
+      </div>
+    </div>
+  );
+}
+
+  if (!session?.user) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+        Please login to view your profile.
+      </div>
+    );
+  }
+
+  return (
+    <ProfileEditor
+      key={session.user.id}
+      user={session.user}
+      onRefresh={refetch}
+    />
+  );
+};
+
+const ProfileEditor = ({
+  user,
+  onRefresh,
+}: {
+  user: ProfileUser;
+  onRefresh: () => Promise<unknown>;
+}) => {
+  const [name, setName] = React.useState(user.name || "");
+  const [imageUrl, setImageUrl] = React.useState(user.image || "");
   const [saving, setSaving] = React.useState(false);
 
-  const update = <K extends keyof typeof form>(key: K, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const toggle = <K extends keyof Preferences>(key: K) => {
-    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (form.name.trim().length < 2) {
+    if (name.trim().length < 2) {
       toast.add({
         type: "warning",
         title: "Name is too short",
-        description: "Add at least two characters so hosts know who you are.",
+        description: "Your name must contain at least 2 characters.",
       });
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+
+    const photo = imageUrl.trim();
+
+    if (photo && !isValidImageUrl(photo)) {
       toast.add({
         type: "warning",
-        title: "Check your email",
-        description: "Enter a valid address before saving.",
+        title: "Invalid image URL",
+        description: "Please enter a valid HTTP or HTTPS image URL.",
       });
       return;
     }
 
     setSaving(true);
-    window.setTimeout(() => {
-      setSaving(false);
+
+    try {
+      const { error } = await authClient.updateUser({
+        name: name.trim(),
+        image: photo || null,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      await onRefresh();
+
       toast.add({
         type: "success",
         title: "Profile updated",
-        description: "Your changes were saved to this demo session.",
+        description: "Your profile information has been saved.",
       });
-    }, 450);
+    } catch (error) {
+      console.error("Profile update failed:", error);
+
+      toast.add({
+        type: "error",
+        title: "Update failed",
+        description: "Could not update your profile. Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setName(user.name || "");
+    setImageUrl(user.image || "");
+
+    toast.add({
+      type: "info",
+      title: "Changes discarded",
+      description: "Your profile form has been reset.",
+    });
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ---------- Identity ---------- */}
       <Card className="gap-5">
         <CardHeader>
           <CardTitle className="font-heading text-lg tracking-[-0.01em]">
             Profile
           </CardTitle>
           <CardDescription>
-            How you appear to hosts and other creators.
+            Manage your profile information and appearance.
           </CardDescription>
         </CardHeader>
+
         <CardContent className="flex flex-col gap-6">
-          {/* Avatar */}
+          {/* Profile Photo */}
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-            <div className="relative size-20 shrink-0 overflow-hidden rounded-full bg-muted ring-4 ring-background">
-              <Image
-                src={img(userProfile.avatar, "avatar")}
-                alt={userProfile.name}
-                fill
-                sizes="80px"
-                className="object-cover"
-              />
+            <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+              {imageUrl && isValidImageUrl(imageUrl) ? (
+                <Image
+                  src={imageUrl}
+                  alt={name || "Profile"}
+                  width={80}
+                  height={80}
+                  unoptimized
+                  className="size-full object-cover"
+                />
+              ) : (
+                <span className="text-2xl font-semibold text-primary">
+                  {name.trim().charAt(0).toUpperCase() || "U"}
+                </span>
+              )}
             </div>
-            <div className="flex flex-col gap-2">
-              <p className="font-heading font-semibold">{userProfile.name}</p>
-              <p className="text-sm text-muted-foreground">
-                Member since {userProfile.joined}
+
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="font-heading font-semibold">
+                {name || "Your profile"}
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-fit rounded-full"
-                onClick={() =>
-                  toast.add({
-                    type: "info",
-                    title: "Photo upload is demo-only",
-                    description: "File uploads aren't wired up in this build.",
-                  })
-                }
-              >
-                <CameraIcon className="size-3.5" />
-                Change photo
-              </Button>
+
+              <p className="text-sm text-muted-foreground">
+                Add an image URL to update your profile photo.
+              </p>
             </div>
           </div>
 
           <Separator />
 
-          {/* Fields */}
           <form
             id="profile-form"
             onSubmit={handleSave}
-            noValidate
             className="grid grid-cols-1 gap-5 sm:grid-cols-2"
           >
+            {/* Full Name */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="profile-name">Full name</Label>
+
               <Input
                 id="profile-name"
-                value={form.name}
-                onChange={(e) => update("name", e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
                 autoComplete="name"
+                maxLength={100}
+                required
                 className="h-10 bg-card"
               />
             </div>
 
+            {/* Email - Read Only */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="profile-email">Email address</Label>
+
               <Input
                 id="profile-email"
                 type="email"
-                value={form.email}
-                onChange={(e) => update("email", e.target.value)}
-                autoComplete="email"
-                className="h-10 bg-card"
+                value={user.email}
+                readOnly
+                className="h-10 cursor-not-allowed bg-muted"
               />
+
+              <p className="text-xs text-muted-foreground">
+                Email address cannot be changed.
+              </p>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="profile-role">What you do</Label>
-              <Input
-                id="profile-role"
-                value={form.role}
-                onChange={(e) => update("role", e.target.value)}
-                className="h-10 bg-card"
-              />
-            </div>
+            {/* Image URL */}
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <Label htmlFor="profile-image">Profile image URL</Label>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="profile-location">Based in</Label>
               <div className="relative">
-                <MapPinIcon
-                  aria-hidden
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                />
+                <CameraIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+
                 <Input
-                  id="profile-location"
-                  value={form.location}
-                  onChange={(e) => update("location", e.target.value)}
-                  autoComplete="address-level2"
+                  id="profile-image"
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/profile.jpg"
                   className="h-10 bg-card pl-9"
                 />
               </div>
-            </div>
 
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <Label htmlFor="profile-bio">Bio</Label>
-              <Textarea
-                id="profile-bio"
-                value={form.bio}
-                onChange={(e) => update("bio", e.target.value)}
-                rows={4}
-                maxLength={320}
-                className="min-h-28 bg-card text-[15px] leading-relaxed"
-              />
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {form.bio.length}/320
+              <p className="text-xs text-muted-foreground">
+                Paste a direct image URL. Leave empty to remove your photo.
               </p>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      {/* ---------- Notifications ---------- */}
-      <Card className="gap-5">
-        <CardHeader>
-          <CardTitle className="font-heading text-lg tracking-[-0.01em]">
-            Notifications
-          </CardTitle>
-          <CardDescription>
-            Decide what lands in your inbox. Everything is off by default
-            except the essentials.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1">
-          <PreferenceRow
-            id="pref-bookings"
-            label="Booking updates"
-            description="Confirmations, reminders and changes to your sessions."
-            checked={prefs.bookingEmails}
-            onChange={() => toggle("bookingEmails")}
-          />
-          <PreferenceRow
-            id="pref-alerts"
-            label="New studios in your city"
-            description="A short note when a matching space goes live."
-            checked={prefs.newStudioAlerts}
-            onChange={() => toggle("newStudioAlerts")}
-          />
-          <PreferenceRow
-            id="pref-host"
-            label="Host activity"
-            description="Messages, requests and payouts on your listings."
-            checked={prefs.hostAlerts}
-            onChange={() => toggle("hostAlerts")}
-          />
-          <PreferenceRow
-            id="pref-marketing"
-            label="Product news & offers"
-            description="Occasional updates from the StudioSpace team."
-            checked={prefs.marketingEmails}
-            onChange={() => toggle("marketingEmails")}
-          />
-        </CardContent>
-      </Card>
-
-      {/* ---------- Security ---------- */}
-      <Card className="gap-5">
-        <CardHeader>
-          <CardTitle className="font-heading text-lg tracking-[-0.01em]">
-            Security
-          </CardTitle>
-          <CardDescription>
-            This build stores no credentials — these controls are visual only.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ShieldCheckIcon className="size-4" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-medium">Password</p>
-              <p className="text-sm text-muted-foreground">
-                Last changed {userProfile.joined}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            className="w-full rounded-full sm:w-auto"
-            onClick={() =>
-              toast.add({
-                type: "info",
-                title: "Password change is demo-only",
-                description: "No credentials are stored by this frontend.",
-              })
-            }
-          >
-            Change password
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* ---------- Save bar ---------- */}
+      {/* Save Actions */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
+          type="button"
           variant="ghost"
+          onClick={handleDiscard}
+          disabled={saving}
           className="h-11 w-full rounded-full px-6 text-muted-foreground sm:w-auto"
-          onClick={() => {
-            setForm({
-              name: userProfile.name,
-              email: userProfile.email,
-              role: userProfile.role,
-              location: userProfile.location,
-              bio: userProfile.bio,
-            });
-            setPrefs(defaultPreferences);
-            toast.add({
-              type: "info",
-              title: "Changes discarded",
-              description: "The form was reset to your saved profile.",
-            });
-          }}
         >
           Discard
         </Button>
+
         <Button
           type="submit"
           form="profile-form"
@@ -323,38 +306,9 @@ export const ProfileForm = () => {
           className="h-11 w-full rounded-full px-7 sm:w-auto"
         >
           <CheckIcon className="size-4" />
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? "Saving..." : "Save changes"}
         </Button>
       </div>
-    </div>
-  );
-};
-
-const PreferenceRow = ({
-  id,
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: () => void;
-}) => {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/40">
-      <div className="min-w-0">
-        <label
-          htmlFor={id}
-          className="cursor-pointer text-sm font-medium select-none"
-        >
-          {label}
-        </label>
-        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-      </div>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </div>
   );
 };

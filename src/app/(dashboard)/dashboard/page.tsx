@@ -1,11 +1,18 @@
 import Link from "next/link";
-import { ArrowRightIcon, CalendarIcon, PlusIcon } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowRightIcon,
+  CalendarIcon,
+  PlusIcon,
+  UserRoundIcon,
+} from "lucide-react";
 import type {
   ActivityEvent,
   Booking,
   DashboardStat,
   Studio,
 } from "@/types/studio";
+
 import { StatCard } from "@/components/dashboard/stat-card";
 import { BookingTrendChart } from "@/components/dashboard/booking-trend-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
@@ -303,6 +310,38 @@ const recentActivity: ActivityEvent[] = activities
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
             Here&apos;s an overview of your studios and recent activity.
           </p>
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+  {user?.image ? (
+    <Image
+      src={user.image}
+      alt={user.name || "User"}
+      width={52}
+      height={52}
+      unoptimized
+      className="size-13 rounded-full object-cover"
+    />
+  ) : (
+    <div className="flex size-13 items-center justify-center rounded-full bg-primary/10 text-primary">
+  <span className="text-xl font-semibold">
+    {user?.name?.trim().charAt(0).toUpperCase() || "U"}
+  </span>
+</div>
+  )}
+
+  <div className="min-w-0 flex-1">
+    <p className="truncate font-semibold">
+      {user?.name || "Creator"}
+    </p>
+
+    <p className="truncate text-sm text-muted-foreground">
+      {user?.email || "No email available"}
+    </p>
+
+    <p className="mt-1 text-xs text-emerald-600">
+      Signed in
+    </p>
+  </div>
+</div>
         </div>
         <Button
           render={<Link href="/dashboard/listings/new" />}
