@@ -52,17 +52,20 @@ export const AvailabilityCalendar = ({
   studioId,
   selected,
   onSelect,
+  bookings: externalBookings,
 }: {
   studioId: string;
   selected: string;
   onSelect: (iso: string) => void;
+  bookings?: BookingSlot[];
 }) => {
   const [offset, setOffset] = React.useState(0);
   const [bookings, setBookings] = React.useState<BookingSlot[]>([]);
+  const effectiveBookings = externalBookings ?? bookings;
 
   // Fetch real booking data from MongoDB
   React.useEffect(() => {
-    if (!studioId) return;
+    if (!studioId || externalBookings) return;
 
     let active = true;
 
@@ -94,7 +97,7 @@ export const AvailabilityCalendar = ({
     return () => {
       active = false;
     };
-  }, [studioId]);
+  }, [studioId, externalBookings]);
   const todayIso = dayOffset(0);
   const lastIso = dayOffset(59);
 
@@ -171,7 +174,7 @@ export const AvailabilityCalendar = ({
             day,
           );
 
-          const dayBookings = bookings.filter(
+          const dayBookings = effectiveBookings.filter(
             (booking) => booking.date === iso,
           );
 
@@ -215,7 +218,7 @@ export const AvailabilityCalendar = ({
                 !isSelected &&
                   hasBookings &&
                   !isBooked &&
-                  "bg-rose-500/10 text-rose-700 ring-1 ring-rose-500/30 dark:text-rose-300",
+                  "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-100",
 
                 !isSelected &&
                   isBooked &&
@@ -246,7 +249,7 @@ export const AvailabilityCalendar = ({
         </span>
 
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-rose-500" />
+          <span className="size-2 rounded-full bg-emerald-500" />
           Partially booked
         </span>
 

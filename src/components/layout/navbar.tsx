@@ -168,6 +168,7 @@ export const Navbar = () => {
                 alt={user.name || "Profile"}
                 width={36}
                 height={36}
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (

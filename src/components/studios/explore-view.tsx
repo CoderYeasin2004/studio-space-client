@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { categories, categoryLabels } from "@/data/categories";
-import { bookedDates, dayOffset } from "@/data/availability";
+import { dayOffset } from "@/data/availability";
 import { StudioCard } from "@/components/studio/studio-card";
 import { ExploreSkeleton } from "@/components/studios/explore-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -90,11 +90,75 @@ const DEFAULT_FILTERS: Filters = {
 
 type LoadState = "loading" | "error" | "ready";
 
+type AvailabilitySlot = {
+  date: string;
+  startTime: string;
+  endTime: string;
+};
+
+/** Minimum booking duration in minutes (reuses BookingCard DURATION_OPTIONS min = 1 hour). */
+const MIN_BOOKING_DURATION_MINS = 60;
+
+/** Booking window start in minutes from midnight (BookingCard START_HOURS[0] = 8). */
+const BOOKING_WINDOW_START_MINS = 8 * 60;
+
+/** Booking window end in minutes from midnight (startHour + hours <= 23). */
+const BOOKING_WINDOW_END_MINS = 23 * 60;
+
+const toMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+/**
+ * Determines whether at least one continuous available time interval remains
+ * for the given date that can accommodate the minimum booking duration.
+ *
+ * Merges overlapping/adjacent booking intervals and checks gaps against the
+ * 08:00–23:00 booking window used by BookingCard.
+ */
+const hasAvailableSlot = (
+  bookedSlots: AvailabilitySlot[],
+  selectedDate: string,
+): boolean => {
+  const dayBookings = bookedSlots.filter((b) => b.date === selectedDate);
+  if (dayBookings.length === 0) return true;
+
+  const intervals = dayBookings
+    .map((b) => ({ start: toMinutes(b.startTime), end: toMinutes(b.endTime) }))
+    .sort((a, b) => a.start - b.start);
+
+  // Merge overlapping/adjacent intervals.
+  const merged: { start: number; end: number }[] = [];
+  for (const interval of intervals) {
+    const last = merged[merged.length - 1];
+    if (last && interval.start <= last.end) {
+      last.end = Math.max(last.end, interval.end);
+    } else {
+      merged.push({ ...interval });
+    }
+  }
+
+  // Check gaps within the booking window.
+  let prevEnd = BOOKING_WINDOW_START_MINS;
+  for (const interval of merged) {
+    if (interval.start - prevEnd >= MIN_BOOKING_DURATION_MINS) return true;
+    prevEnd = Math.max(prevEnd, interval.end);
+  }
+  if (BOOKING_WINDOW_END_MINS - prevEnd >= MIN_BOOKING_DURATION_MINS) return true;
+
+  return false;
+};
+
 /**
  * Search / filter / sort over live studio listings fetched from the API.
  * Reads the incoming `?category=` deep link once, then keeps all state local —
  * the catalogue loads once on mount (`status: "live"` only) and everything
  * else (results, city options, price ceiling) derives from that response.
+ *
+ * Availability (booked dates) is fetched live from
+ * GET /studios/:id/availability when a date filter is applied, and cached per
+ * studio so that changes to other filters don't trigger re-fetches.
  */
 export const ExploreView = () => {
   const searchParams = useSearchParams();
@@ -115,6 +179,13 @@ export const ExploreView = () => {
   const [loadState, setLoadState] = React.useState<LoadState>("loading");
   /** Bumped by "Try again" — re-runs the fetch effect below. */
   const [reloadKey, setReloadKey] = React.useState(0);
+
+  /** Availability cache: studioId -> booked date/time slots */
+  const [availabilityCache, setAvailabilityCache] = React.useState<Record<string, AvailabilitySlot[]>>({});
+  /** Whether an availability fetch is in progress */
+  const [availabilityLoading, setAvailabilityLoading] = React.useState(false);
+  /** Studios whose availability fetch failed */
+  const [availabilityErrors, setAvailabilityErrors] = React.useState<Record<string, boolean>>({});
 
   /** Fetch + normalize the live catalogue. Pure — callers land the state. */
   const fetchLiveStudios = React.useCallback(async (): Promise<
@@ -230,7 +301,104 @@ export const ExploreView = () => {
       price: [0, priceCeiling],
       sort: prev.sort,
     }));
+    setAvailabilityCache({});
+    setAvailabilityErrors({});
   };
+
+  /**
+   * Fetch real booked slots for the given studios from the backend.
+   * Skips studios that are already cached or errored.
+   */
+  const fetchAvailability = React.useCallback(async (studioIds: string[]) => {
+    if (studioIds.length === 0) return;
+
+    setAvailabilityLoading(true);
+
+    await Promise.all(
+      studioIds.map(async (studioId) => {
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
+            { cache: "no-store" },
+          );
+
+          if (!response.ok) {
+            setAvailabilityErrors((prev) => ({
+              ...prev,
+              [studioId]: true,
+            }));
+            return;
+          }
+
+          const data: unknown = await response.json();
+          if (Array.isArray(data)) {
+            setAvailabilityCache((prev) => ({
+              ...prev,
+              [studioId]: data as AvailabilitySlot[],
+            }));
+          }
+        } catch {
+          setAvailabilityErrors((prev) => ({
+            ...prev,
+            [studioId]: true,
+          }));
+        }
+      }),
+    );
+
+    setAvailabilityLoading(false);
+  }, []);
+
+  /**
+   * Trigger availability fetch when a date filter is applied.
+   * Only fetches for studios matching all non-date filters, and only for
+   * studios not already cached/errored.
+   */
+  React.useEffect(() => {
+    if (!filters.date) {
+      setAvailabilityCache({});
+      setAvailabilityErrors({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchAll = async () => {
+      const candidates = studios.filter((studio) => {
+        if (studio.status !== "live") return false;
+        if (filters.category !== "all" && studio.category !== filters.category)
+          return false;
+        if (filters.city !== "all" && studio.city !== filters.city) return false;
+        if (
+          studio.hourlyPrice < filters.price[0] ||
+          studio.hourlyPrice > filters.price[1]
+        )
+          return false;
+        if (filters.capacity && studio.capacity < filters.capacity) return false;
+        return true;
+      });
+
+      if (!cancelled) {
+        await fetchAvailability(
+          candidates.map((s) => s.id).filter((id): id is string => !!id),
+        );
+      }
+    };
+
+    fetchAll();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    filters.date,
+    studios,
+    filters.category,
+    filters.city,
+    filters.price,
+    filters.capacity,
+    fetchAvailability,
+  ]);
 
   const results = React.useMemo(() => {
     const q = filters.query.trim().toLowerCase();
@@ -240,8 +408,30 @@ export const ExploreView = () => {
       if (filters.category !== "all" && studio.category !== filters.category)
         return false;
       if (filters.city !== "all" && studio.city !== filters.city) return false;
-      if (filters.date && bookedDates(studio.id ?? "").includes(filters.date))
-        return false;
+
+      // Date filter: compute availability status for display, but never
+      // hide a studio based on availability.
+      let availabilityStatus:
+        | "available"
+        | "partially-available"
+        | "fully-booked"
+        | undefined = undefined;
+      if (filters.date) {
+        const studioId = studio.id ?? "";
+        const booked = availabilityCache[studioId];
+        // If availability hasn't been fetched yet for this studio, leave
+        // status as null — the loading state handles the UI.
+        if (booked) {
+          if (booked.length === 0) {
+            availabilityStatus = "available";
+          } else if (hasAvailableSlot(booked, filters.date)) {
+            availabilityStatus = "partially-available";
+          } else {
+            availabilityStatus = "fully-booked";
+          }
+        }
+      }
+
       if (
         studio.hourlyPrice < filters.price[0] ||
         studio.hourlyPrice > filters.price[1]
@@ -290,7 +480,7 @@ export const ExploreView = () => {
         );
     }
     return sorted;
-  }, [filters, studios]);
+  }, [filters, studios, availabilityCache]);
 
   if (loadState === "loading") {
     return <ExploreSkeleton />;
@@ -316,6 +506,31 @@ export const ExploreView = () => {
             </Button>
           }
         />
+      </div>
+    );
+  }
+
+  // While availability is being fetched for the selected date, show loading
+  // skeletons instead of potentially stale or incomplete results.
+  if (filters.date && availabilityLoading && studios.length > 0) {
+    return (
+      <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-heading text-xl font-semibold text-foreground">
+              Loading availability…
+            </span>
+          </p>
+        </div>
+        <div className="mt-7 grid grid-cols-1 gap-x-6 gap-y-11 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col gap-3.5">
+              <div className="aspect-[4/3] w-full animate-pulse rounded-xl bg-muted" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3.5 w-1/2 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -392,7 +607,9 @@ export const ExploreView = () => {
             {/* Category */}
             <Select
               value={filters.category}
-              onValueChange={(v) => update("category", (v ?? "all") as Filters["category"])}
+              onValueChange={(v) =>
+                update("category", (v ?? "all") as Filters["category"])
+              }
               items={categoryItems}
             >
               <SelectTrigger className="h-9 w-full bg-card">
@@ -495,7 +712,9 @@ export const ExploreView = () => {
             {/* Sort */}
             <Select
               value={filters.sort}
-              onValueChange={(v) => update("sort", (v ?? "recommended") as SortKey)}
+              onValueChange={(v) =>
+                update("sort", (v ?? "recommended") as SortKey)
+              }
               items={sortItems}
             >
               <SelectTrigger className="h-9 w-full bg-card">
@@ -557,7 +776,12 @@ export const ExploreView = () => {
               <EmptyState
                 icon={SearchXIcon}
                 title="No studios match those filters"
-                description="Try widening the price range, clearing the date, or searching another city — there are spaces waiting."
+                description={
+                  availabilityErrors[filters.date || ""] ||
+                  Object.values(availabilityErrors).some(Boolean)
+                    ? "Failed to load availability for some studios. Try again."
+                    : "Try widening the price range, clearing the date, or searching another city — there are spaces waiting."
+                }
                 action={
                   <Button onClick={clearFilters} className="rounded-full px-6">
                     <RotateCcwIcon className="size-4" />
@@ -569,13 +793,34 @@ export const ExploreView = () => {
           </div>
         ) : (
           <div className="mt-7 grid grid-cols-1 gap-x-6 gap-y-11 sm:grid-cols-2 lg:grid-cols-3">
-            {results.map((studio, index) => (
-              <StudioCard
-                key={studio.id}
-                studio={studio}
-                priority={index < 3}
-              />
-            ))}
+            {results.map((studio, index) => {
+              let availabilityStatus:
+                | "available"
+                | "partially-available"
+                | "fully-booked"
+                | undefined = undefined;
+              if (filters.date) {
+                const studioId = studio.id ?? "";
+                const booked = availabilityCache[studioId];
+                if (booked) {
+                  if (booked.length === 0) {
+                    availabilityStatus = "available";
+                  } else if (hasAvailableSlot(booked, filters.date)) {
+                    availabilityStatus = "partially-available";
+                  } else {
+                    availabilityStatus = "fully-booked";
+                  }
+                }
+              }
+              return (
+                <StudioCard
+                  key={studio.id}
+                  studio={studio}
+                  priority={index < 3}
+                  availability={availabilityStatus}
+                />
+              );
+            })}
           </div>
         )}
       </div>

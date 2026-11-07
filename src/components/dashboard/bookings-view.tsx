@@ -37,6 +37,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type TabKey = "upcoming" | "past" | "all";
 
@@ -171,6 +180,83 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
         title: "Cancellation failed",
         description: "Could not cancel your booking. Please try again.",
       });
+    }
+  };
+
+  // ---- Mark as Completed ----
+  const [completingBooking, setCompletingBooking] = React.useState<Booking | null>(null);
+  const [completing, setCompleting] = React.useState(false);
+
+  const isBookingEnded = (booking: Booking): boolean => {
+    const [endHour, endMin] = booking.endTime.split(":").map(Number);
+    const endDate = new Date(booking.date);
+    endDate.setHours(endHour, endMin ?? 0, 0, 0);
+    return endDate < new Date();
+  };
+
+  const openCompleteDialog = (booking: Booking) => {
+    setCompletingBooking(booking);
+  };
+
+  const closeCompleteDialog = () => {
+    setCompletingBooking(null);
+  };
+
+  const completeBooking = async () => {
+    if (!completingBooking) return;
+    setCompleting(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(completingBooking.id)}/complete`,
+        { method: "PATCH" },
+      );
+
+      if (response.status === 400) {
+        const data = await response.json().catch(() => ({}));
+        toast.add({
+          type: "error",
+          title: "Cannot complete booking",
+          description: data.message || "The booking end time has not passed.",
+        });
+        closeCompleteDialog();
+        return;
+      }
+
+      if (response.status === 404) {
+        toast.add({
+          type: "error",
+          title: "Booking not found",
+          description: "This booking no longer exists.",
+        });
+        closeCompleteDialog();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Completion failed");
+      }
+
+      setRows((prev) =>
+        prev.map((b) =>
+          b.id === completingBooking!.id ? { ...b, status: "completed" } : b,
+        ),
+      );
+
+      toast.add({
+        type: "success",
+        title: "Booking completed",
+        description: `${completingBooking.studioName} marked as completed.`,
+      });
+      closeCompleteDialog();
+    } catch {
+      toast.add({
+        type: "error",
+        title: "Completion failed",
+        description: "Could not mark booking as completed. Please try again.",
+      });
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -400,6 +486,15 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
                               Cancel
                             </Button>
                           )}
+                          {booking.status === "confirmed" && isBookingEnded(booking) && (
+                            <Button
+                              variant="outline"
+              size="sm"
+              onClick={() => openCompleteDialog(booking)}
+            >
+              Mark as Completed
+            </Button>
+                          )}
                           {slug && (
                             <Link
                               href={`/studios/${slug}`}
@@ -419,6 +514,39 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
           </div>
         </div>
       )}
+
+      {/* Mark as Completed confirmation dialog */}
+      <Dialog open={!!completingBooking} onOpenChange={closeCompleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark booking as completed?</DialogTitle>
+            <DialogDescription>
+              {completingBooking?.studioName} &bull;{" "}
+              {completingBooking?.date ? formatIsoDate(completingBooking.date) : ""} &bull;{" "}
+              {completingBooking?.startTime} – {completingBooking?.endTime}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={closeCompleteDialog}
+              disabled={completing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={completeBooking}
+              disabled={completing || !completingBooking}
+            >
+              {completing ? "Completing…" : "Mark as Completed"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

@@ -40,6 +40,8 @@ interface StudioCardProps {
   ratio?: "video" | "square" | "portrait" | "wide";
   priority?: boolean;
   className?: string;
+  /** Availability status for the selected date (Explore Studios only). */
+  availability?: "available" | "partially-available" | "fully-booked";
 }
 
 /**
@@ -52,6 +54,7 @@ export const StudioCard = ({
   ratio = "video",
   priority = false,
   className,
+  availability,
 }: StudioCardProps) => {
   const href = `/studios/${studio.slug}`;
 
@@ -198,6 +201,38 @@ export const StudioCard = ({
           <MapPinIcon className="size-3.5 shrink-0" />
           {studio.location}
         </p>
+        {availability && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5",
+              availability === "available"
+                && "bg-emerald-100 text-emerald-800 dark:bg-emerald-500 dark:text-emerald-100",
+              availability === "partially-available"
+                && "bg-amber-100 text-amber-800 dark:bg-amber-500 dark:text-amber-100",
+              availability === "fully-booked"
+                && "bg-rose-100 text-rose-800 dark:bg-rose-500 dark:text-rose-100",
+            )}
+          >
+            {availability === "available" && (
+              <>
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                Available
+              </>
+            )}
+            {availability === "partially-available" && (
+              <>
+                <span className="size-1.5 rounded-full bg-amber-500" />
+                Partially available
+              </>
+            )}
+            {availability === "fully-booked" && (
+              <>
+                <span className="size-1.5 rounded-full bg-rose-500" />
+                Fully booked
+              </>
+            )}
+          </span>
+        )}
         <p className="inline-flex items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <UsersIcon className="size-3.5" />

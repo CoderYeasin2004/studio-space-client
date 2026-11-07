@@ -282,9 +282,9 @@ export const BookingCalendar = ({ bookings }: BookingCalendarProps) => {
       </div>
 
       <div className="grid grid-cols-7 gap-0.5">
-        {WEEKDAYS.map((weekday) => (
+        {WEEKDAYS.map((weekday, index) => (
           <span
-            key={weekday}
+            key={`${weekday}-${index}`}
             className="py-1 text-center text-[11px] font-medium text-muted-foreground"
           >
             {weekday}
@@ -306,7 +306,7 @@ export const BookingCalendar = ({ bookings }: BookingCalendarProps) => {
               key={iso}
               type="button"
               aria-label={
-                parseIso(iso).toLocaleDateString("en-US", {
+                parseIso(iso).toLocaleDateString("en-GB", {
                   weekday: "long",
                   month: "long",
                   day: "numeric",
@@ -361,9 +361,10 @@ export const BookingCalendar = ({ bookings }: BookingCalendarProps) => {
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
             <p className="text-xs font-medium">
-              {parseIso(selected).toLocaleDateString("en-US", {
-                month: "short",
+              {parseIso(selected).toLocaleDateString("en-GB", {
                 day: "numeric",
+                month: "short",
+                year: "numeric",
               })}
             </p>
             <Button

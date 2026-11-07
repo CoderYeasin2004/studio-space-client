@@ -47,12 +47,12 @@ export const isBookedOn = (studioId: string, isoDate: string): boolean => {
   return bookedDates(studioId).includes(isoDate);
 };
 
-/** Formats an ISO date for display, e.g. "Sat 14 Nov". */
+/** Formats an ISO date for display, e.g. "14 Nov 2026". */
 export const formatIsoDate = (isoDate: string): string => {
   const [y, m, d] = isoDate.split("-").map(Number);
   return new Date(y, m - 1, d, 12).toLocaleDateString("en-GB", {
-    weekday: "short",
     day: "numeric",
     month: "short",
+    year: "numeric",
   });
 };
