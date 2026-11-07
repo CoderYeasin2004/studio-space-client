@@ -26,9 +26,11 @@ import {
   UserRoundIcon,
   LogOutIcon,
   Plus,
+  HeartIcon,
 } from "lucide-react";
 
 import { useSession, signOut } from "@/lib/auth-client";
+import { useFavorites } from "@/hooks/use-favorites";
 import { toast } from "@/components/ui/toast";
 
 import {
@@ -78,6 +80,7 @@ export const Navbar = () => {
 
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const { count } = useFavorites();
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -136,9 +139,24 @@ export const Navbar = () => {
 
         {/* ---------- Actions ---------- */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-  <ThemeToggle />
+          <ThemeToggle />
 
-  {user ? (
+          <Button
+            render={<Link href="/favorites" />}
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Favourites (${count})`}
+            className="relative"
+          >
+            <HeartIcon className="size-4" />
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-rose-500 text-white border border-border text-[9px] font-semibold rounded-full flex items-center justify-center ring-1 ring-inset">
+                {count > 9 ? "9+" : count}
+              </span>
+            )}
+          </Button>
+
+          {user ? (
     <div className="hidden items-center gap-2 sm:flex">
       <DropdownMenu>
         <div className="flex items-center gap-1">

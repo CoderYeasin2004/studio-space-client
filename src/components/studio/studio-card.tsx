@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { HeartIcon, MapPinIcon, StarIcon, UsersIcon } from "lucide-react";
+import { MapPinIcon, StarIcon, UsersIcon } from "lucide-react";
 import { cn } from "cn";
 import type { Studio } from "@/types/studio";
 import { categoryLabels } from "@/data/categories";
@@ -90,7 +90,7 @@ export const StudioCard = ({
           <p className="text-sm font-semibold">£{studio.hourlyPrice}</p>
           <p className="text-xs text-muted-foreground">per hour</p>
         </div>
-        <HeartIcon className="size-4 shrink-0 text-muted-foreground" />
+        <FavoriteButton studioId={studio.id ?? studio._id ?? ""} studioName={studio.name} size="sm" />
       </Link>
     );
   }
