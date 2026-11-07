@@ -18,8 +18,10 @@ import { BookingTrendChart } from "@/components/dashboard/booking-trend-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { BookingTable } from "@/components/dashboard/booking-table";
 import { BookingCalendar } from "@/components/dashboard/booking-calendar";
-import { Button } from "@/components/ui/button";import { headers } from "next/headers";
+import { Button } from "@/components/ui/button";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { fetchStudioReviews, type Review } from "@/lib/api/studios";
 import {
   Card,
   CardContent,
@@ -27,6 +29,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/dashboard/status-badge";
+import { StarIcon } from "lucide-react";
 
 export const metadata = {
   title: "Dashboard — StudioSpace",
@@ -169,6 +174,21 @@ if (user?.email) {
   } catch {
     bookings = [];
   }
+}
+
+const studioReviewsMap: Record<string, Review[]> = {};
+
+if (user?.email && myStudios.length > 0) {
+  const studioReviewResults = await Promise.all(
+    myStudios.map(async (studio) => {
+      const reviews = await fetchStudioReviews(studio.id ?? studio._id ?? "");
+      return { studioId: studio.id ?? studio._id ?? "", reviews };
+    }),
+  );
+
+  studioReviewResults.forEach(({ studioId, reviews }) => {
+    studioReviewsMap[studioId] = reviews;
+  });
 }
 
  
@@ -441,6 +461,84 @@ const recentActivity: ActivityEvent[] = activities
           </CardHeader>
           <CardContent>
             <BookingCalendar bookings={bookings} />
+          </CardContent>
+        </Card>
+
+        <Card className="gap-3">
+          <CardHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="font-heading text-lg tracking-[-0.01em]">
+                  Reviews
+                </CardTitle>
+                <CardDescription>
+                  Reviews across your studios
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              {myStudios.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No studios to review yet.
+                </p>
+              ) : (
+                <>
+                  {myStudios.map((studio) => {
+                    const studioReviews = studioReviewsMap[
+                      studio.id ?? studio._id ?? ""
+                    ] || [];
+                    return (
+                      <div
+                        key={studio.id}
+                        className="border border-border rounded-lg p-3 mb-3"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-sm">
+                            {studio.name}
+                          </h4>
+                          <StatusBadge status={studio.status} kind="listing" />
+                        </div>
+                        {studioReviews.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            No reviews yet.
+                          </p>
+                        ) : (
+                          studioReviews.map((review) => (
+                            <div key={review.id} className="flex flex-col gap-2 mt-2">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">
+                                  {review.author}
+                                </p>
+                                <span className="flex items-center gap-1">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <StarIcon
+                                      key={i}
+                                      className={`size-3 ${
+                                        i < review.rating
+                                          ? "text-amber-500"
+                                          : "text-muted-foreground/30"
+                                      }`}
+                                    />
+                                  ))}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {review.text}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {review.date}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

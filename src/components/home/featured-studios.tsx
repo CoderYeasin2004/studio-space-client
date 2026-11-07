@@ -1,6 +1,9 @@
+"use client";
+
 import type { Studio } from "@/types/studio";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StudioCard } from "@/components/studio/studio-card";
+import { useRouter } from "next/navigation";
 
 const STUDIOS_LIMIT = 6;
 
@@ -52,6 +55,7 @@ async function fetchFeaturedStudios(): Promise<Studio[]> {
 export const FeaturedStudios = async () => {
   const studios = await fetchFeaturedStudios();
   const [first, second, ...rest] = studios;
+  const router = useRouter();
 
   return (
     <section
@@ -80,6 +84,7 @@ export const FeaturedStudios = async () => {
             ratio="portrait"
             priority
             className="lg:col-span-4 lg:row-span-2"
+            onReviewClick={() => router.push(`/studios/${first.slug}/reviews`)}
           />
         )}
 
@@ -90,6 +95,7 @@ export const FeaturedStudios = async () => {
             variant="editorial"
             ratio="wide"
             className="lg:col-span-8"
+            onReviewClick={() => router.push(`/studios/${second.slug}/reviews`)}
           />
         )}
 
@@ -100,6 +106,7 @@ export const FeaturedStudios = async () => {
             studio={studio}
             ratio="video"
             className={index < 2 ? "lg:col-span-4" : "lg:col-span-6"}
+            onReviewClick={() => router.push(`/studios/${studio.slug}/reviews`)}
           />
         ))}
       </div>

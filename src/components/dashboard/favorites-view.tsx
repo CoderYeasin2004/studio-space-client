@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { HeartIcon, UsersIcon } from "lucide-react";
 import { cn } from "cn";
+import { img } from "@/lib/images";
 import type { Studio } from "@/types/studio";
 import type { FavoriteItem } from "@/hooks/use-favorites";
 import { StudioCard } from "@/components/studio/studio-card";

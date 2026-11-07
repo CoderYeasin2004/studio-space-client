@@ -45,6 +45,7 @@ export interface Studio {
   amenities: StudioAmenity[];
   host?: StudioHost;
   tags: string[];
+  creatorEmail?: string;
 }
 
 export interface Category {
@@ -94,4 +95,13 @@ export interface DashboardStat {
   delta: string;
   trend: "up" | "down" | "neutral";
   icon: string;
+}
+
+export interface Review {
+  id: string;
+  studioId: string;
+  author: string;
+  rating: number;
+  text: string;
+  date: string;
 }

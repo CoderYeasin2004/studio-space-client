@@ -11,6 +11,7 @@ import {
   LayoutDashboardIcon,
   LayoutGridIcon,
   LogOutIcon,
+  StarIcon,
   UserRoundIcon,
   ChevronDownIcon,
 } from "lucide-react";
@@ -75,6 +76,11 @@ const groups = [
         label: "Profile settings",
         href: "/dashboard/profile",
         icon: UserRoundIcon,
+      },
+      {
+        label: "My reviews",
+        href: "/dashboard/reviews",
+        icon: StarIcon,
       },
     ],
   },
@@ -282,6 +288,11 @@ const user = session?.user;
         <DropdownMenuItem onClick={() => navigateTo("/dashboard/profile")}>
           <UserRoundIcon />
           Profile Settings
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => navigateTo("/dashboard/reviews")}>
+          <StarIcon />
+          My Reviews
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={() => navigateTo("/")}>

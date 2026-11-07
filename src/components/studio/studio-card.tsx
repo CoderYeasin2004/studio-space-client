@@ -42,6 +42,8 @@ interface StudioCardProps {
   className?: string;
   /** Availability status for the selected date (Explore Studios only). */
   availability?: "available" | "partially-available" | "fully-booked";
+  /** Click handler for the rating — navigates to studio reviews page. */
+  onReviewClick?: () => void;
 }
 
 /**
@@ -55,6 +57,7 @@ export const StudioCard = ({
   priority = false,
   className,
   availability,
+  onReviewClick,
 }: StudioCardProps) => {
   const href = `/studios/${studio.slug}`;
 
@@ -136,15 +139,23 @@ export const StudioCard = ({
               <MapPinIcon className="size-3.5" />
               {studio.location}
             </span>
-            <Rating
-              rating={studio.rating}
-              reviewCount={studio.reviewCount}
-              className="text-white"
-            />
             <span className="ml-auto font-medium text-white">
               £{studio.hourlyPrice}
               <span className="font-normal text-white/60">/hr</span>
             </span>
+            <div
+              onClick={onReviewClick}
+              className={cn(
+                "cursor-pointer group-hover:text-primary",
+                onReviewClick && "hover:underline",
+              )}
+            >
+              <Rating
+                rating={studio.rating}
+                reviewCount={studio.reviewCount}
+                className="text-white"
+              />
+            </div>
           </div>
         </div>
       </Link>
@@ -191,11 +202,19 @@ export const StudioCard = ({
           <h3 className="font-heading text-base leading-snug font-semibold tracking-[-0.01em] transition-colors group-hover:text-primary">
             {studio.name}
           </h3>
-          <Rating
-            rating={studio.rating}
-            reviewCount={studio.reviewCount}
-            className="pt-0.5"
-          />
+          <div
+            onClick={onReviewClick}
+            className={cn(
+              "cursor-pointer group-hover:text-primary",
+              onReviewClick && "hover:underline",
+            )}
+          >
+            <Rating
+              rating={studio.rating}
+              reviewCount={studio.reviewCount}
+              className="pt-0.5"
+            />
+          </div>
         </div>
         <p className="inline-flex items-center gap-1 text-sm text-muted-foreground">
           <MapPinIcon className="size-3.5 shrink-0" />

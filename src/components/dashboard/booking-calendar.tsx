@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useSession } from "@/lib/auth-client";
 import {
   CalendarIcon,
   ChevronLeftIcon,

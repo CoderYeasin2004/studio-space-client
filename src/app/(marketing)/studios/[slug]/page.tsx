@@ -10,15 +10,15 @@ import {
   StarIcon,
   UsersIcon,
 } from "lucide-react";
-import { getRelatedStudios } from "@/data/studios";
+import { fetchStudios, fetchStudioReviews, submitStudioReview, type Review } from "@/lib/api/studios";
 import type { Studio } from "@/types/studio";
 import { categoryLabels } from "@/data/categories";
-import { reviewsFor } from "@/data/reviews";
 import { img } from "@/lib/images";
 import { Gallery } from "@/components/studios/gallery";
 import { BookingCard } from "@/components/studios/booking-card";
 import { AmenityIcon } from "@/components/studios/amenity-icon";
 import { StudioCard } from "@/components/studio/studio-card";
+import { ReviewForm } from "@/components/studios/review-form";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Badge } from "@/components/ui/badge";
 
@@ -83,8 +83,28 @@ const studio: Studio = {
   ...studioData,
   id: studioData._id ?? studioData.id ?? "",
 };
- const related = getRelatedStudios(studio, 3);
-const reviews = studio.reviewCount > 0 ? reviewsFor(studioId) : [];
+
+const currentHostEmail = studioData.creatorEmail as string | undefined;
+
+const allStudios: Studio[] = (await fetchStudios()) as Studio[];
+
+const related = allStudios
+  .filter((s) => s.id !== studio.id && s.category === studio.category)
+  .sort((a, b) => {
+    const aIsSameHost = a.creatorEmail === currentHostEmail;
+    const bIsSameHost = b.creatorEmail === currentHostEmail;
+    if (aIsSameHost && !bIsSameHost) return -1;
+    if (!aIsSameHost && bIsSameHost) return 1;
+    return 0;
+  })
+  .slice(0, 3);
+
+const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
+  (a, b) => {
+    if (b.rating !== a.rating) return b.rating - a.rating;
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  }
+).slice(0, 3);
   const specs = [
     { icon: UsersIcon, label: "Capacity", value: `${studio.capacity} people` },
     { icon: RulerIcon, label: "Floor area", value: `${studio.size} m²` },
@@ -291,11 +311,27 @@ const reviews = studio.reviewCount > 0 ? reviewsFor(studioId) : [];
                     {studio.reviewCount} reviews
                   </span>
                 </div>
+                <Link
+                  href={`/studios/${slug}/reviews`}
+                  className="text-xs text-primary hover:text-primary-800 transition-colors"
+                >
+                  See all reviews
+                </Link>
               </div>
             </div>
 
+            <div className="mt-5 flex flex-col gap-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Write a review
+              </h3>
+              <ReviewForm studioId={studioId} onReviewAdded={() => {
+                // Refresh reviews by triggering a re-render through session
+                // The page will refetch on next render
+              }} />
+            </div>
+
             <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-              {reviews.map((review) => (
+              {studioReviews.map((review) => (
                 <figure
                   key={review.id}
                   className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4"
@@ -303,7 +339,7 @@ const reviews = studio.reviewCount > 0 ? reviewsFor(studioId) : [];
                   <figcaption className="flex items-center gap-3">
                     <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-muted">
                       <Image
-                        src={img(review.avatar, "avatar")}
+                        src={img(review.author.substring(0, 1), "avatar")}
                         alt=""
                         fill
                         sizes="36px"
@@ -313,9 +349,6 @@ const reviews = studio.reviewCount > 0 ? reviewsFor(studioId) : [];
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {review.author}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {review.role}
                       </p>
                     </div>
                   </figcaption>
@@ -339,6 +372,13 @@ const reviews = studio.reviewCount > 0 ? reviewsFor(studioId) : [];
                   </p>
                 </figure>
               ))}
+              {studioReviews.length === 0 && (
+                <div className="col-span-full flex flex-col items-center justify-center py-8">
+                  <p className="text-sm text-muted-foreground">
+                    No reviews yet. Be the first to share your experience!
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

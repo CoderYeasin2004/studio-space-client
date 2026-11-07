@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   AlertTriangleIcon,
   Building2Icon,
@@ -162,6 +162,7 @@ const hasAvailableSlot = (
  */
 export const ExploreView = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [filters, setFilters] = React.useState<Filters>(() => {
     const requested = searchParams.get("category");
@@ -818,6 +819,7 @@ export const ExploreView = () => {
                   studio={studio}
                   priority={index < 3}
                   availability={availabilityStatus}
+                  onReviewClick={() => router.push(`/studios/${studio.slug}/reviews`)}
                 />
               );
             })}
