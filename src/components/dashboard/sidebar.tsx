@@ -32,7 +32,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { ApertureMark } from "@/components/brand/logo";
 
 import {
   DropdownMenu,
@@ -92,7 +94,11 @@ export const DashboardSidebar = () => {
   const { data: session } = useSession();
 const user = session?.user;
 
+  const { isMobile, setOpen, state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -136,9 +142,23 @@ const user = session?.user;
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="border-b border-border px-4 py-4">
-        <Logo size="sm" />
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-border"
+      onMouseEnter={!isMobile ? () => setOpen(true) : undefined}
+      onMouseLeave={!isMobile ? () => setOpen(false) : undefined}
+    >
+      <SidebarHeader
+        className={cn(
+          "border-b border-border px-4 py-4",
+          "group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1"
+        )}
+      >
+        {isCollapsed ? (
+          <ApertureMark className="size-6 shrink-0 mx-auto text-primary" />
+        ) : (
+          <Logo size="sm" />
+        )}
       </SidebarHeader>
 
       <SidebarContent className="gap-5 px-2.5 py-4">
@@ -186,41 +206,48 @@ const user = session?.user;
       </SidebarContent>
 
      <SidebarFooter className="border-t border-border p-3">
-  <div className="flex items-center gap-2">
+  <div className={cn(
+    "flex items-center gap-2",
+    "group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1.5"
+  )}>
     {/* Dynamic User Profile */}
-    <div className="flex min-w-0 flex-1 items-center gap-2.5 px-1.5 py-1">
-      <div className="relative size-8 shrink-0 overflow-hidden rounded-full border border-border bg-primary/10">
-        {user?.image ? (
-          <Image
-            src={user.image}
-            alt={user.name || "Profile"}
-            width={32}
-            height={32}
-            unoptimized
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-primary">
-            {user?.name?.trim().charAt(0).toUpperCase() || "U"}
-          </span>
-        )}
-      </div>
+    <div
+      className="relative size-8 shrink-0 overflow-hidden rounded-full border border-border bg-primary/10"
+      onClick={() => setDropdownOpen(true)}
+    >
+      {user?.image ? (
+        <Image
+          src={user.image}
+          alt={user.name || "Profile"}
+          width={32}
+          height={32}
+          unoptimized
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-primary">
+          {user?.name?.trim().charAt(0).toUpperCase() || "U"}
+        </span>
+      )}
+    </div>
 
-      <div className="min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
-        <p className="truncate text-xs font-medium">
-          {user?.name || "User"}
-        </p>
-        <p className="truncate text-[11px] text-muted-foreground">
-          {user?.email || ""}
-        </p>
-      </div>
+    <div className="min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
+      <p className="truncate text-xs font-medium">
+        {user?.name || "User"}
+      </p>
+      <p className="truncate text-[11px] text-muted-foreground">
+        {user?.email || ""}
+      </p>
     </div>
 
     {/* Dropdown */}
-    <DropdownMenu>
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <DropdownMenuTrigger
         aria-label="Open account menu"
-        className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+          "group-data-[collapsible=icon]:hidden"
+        )}
       >
         <ChevronDownIcon className="size-4" />
       </DropdownMenuTrigger>

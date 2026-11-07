@@ -17,7 +17,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { BookingTrendChart } from "@/components/dashboard/booking-trend-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { BookingTable } from "@/components/dashboard/booking-table";
-import { FavoritesPanel } from "@/components/dashboard/favorites-panel";
+import { BookingCalendar } from "@/components/dashboard/booking-calendar";
 import { Button } from "@/components/ui/button";import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
@@ -429,9 +429,9 @@ const recentActivity: ActivityEvent[] = activities
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle className="font-heading text-lg tracking-[-0.01em]">
-                  Favourites
+                  Booking Calendar
                 </CardTitle>
-                <CardDescription>Spaces you&apos;ve saved</CardDescription>
+                <CardDescription>Sessions across your studios</CardDescription>
               </div>
               <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <CalendarIcon className="size-4" />
@@ -439,7 +439,7 @@ const recentActivity: ActivityEvent[] = activities
             </div>
           </CardHeader>
           <CardContent>
-            <FavoritesPanel />
+            <BookingCalendar bookings={bookings} />
           </CardContent>
         </Card>
       </div>

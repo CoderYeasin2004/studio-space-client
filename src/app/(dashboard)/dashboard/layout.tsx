@@ -12,7 +12,7 @@ const DashboardLayout = ({
   children: React.ReactNode;
 }) => {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <DashboardSidebar />
       <SidebarInset className="min-h-screen bg-background">
         <DashboardHeader />
