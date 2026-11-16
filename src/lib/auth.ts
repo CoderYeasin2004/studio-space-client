@@ -4,6 +4,7 @@ import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { jwt } from "better-auth/plugins";
 
 const client = new MongoClient(process.env.MONGO_URI as string);
+await client.connect();
 const db = client.db("studio-space-server");
 
 export const auth = betterAuth({
