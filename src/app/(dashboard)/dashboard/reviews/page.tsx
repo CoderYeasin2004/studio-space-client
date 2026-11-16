@@ -7,8 +7,9 @@ import {
   ClockIcon,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
-import { fetchStudioReviews, type Review } from "@/lib/api/studios";
-import type { Studio } from "@/types/studio";
+import { fetchStudioReviews } from "@/lib/api/studios";
+import type { IApiReview } from "@/types/review";
+import type { IStudio } from "@/types/studio";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ import {
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { StarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton, SkeletonCard, SkeletonText } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -37,8 +39,8 @@ const SORT_OPTIONS: Array<{ value: ReviewSortKey; label: string }> = [
 ];
 
 interface StudioReviewEntry {
-  studio: Studio;
-  reviews: Review[];
+  studio: IStudio;
+  reviews: IApiReview[];
 }
 
 const ReviewsPage = () => {
@@ -65,9 +67,23 @@ const ReviewsPage = () => {
           return;
         }
 
+        const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+        const token = await getTokenFromClient();
+        if (!token) {
+          setStudioReviews([]);
+          setLoading(false);
+          setError("Authentication required");
+          return;
+        }
+
         const studiosResponse = await fetch(
           `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studios/${encodeURIComponent(user.email)}`,
-          { cache: "no-store" },
+          {
+            cache: "no-store",
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
         );
 
         if (!studiosResponse.ok) {
@@ -79,7 +95,7 @@ const ReviewsPage = () => {
           throw new Error("Studios response was not a list");
         }
 
-        const myStudios: Studio[] = studiosData as Studio[];
+        const myStudios: IStudio[] = studiosData as IStudio[];
 
         if (myStudios.length === 0) {
           setStudioReviews([]);
@@ -122,7 +138,7 @@ const ReviewsPage = () => {
     if (studioReviews.length === 0) return [];
 
     // Flatten into { studio, review } pairs without mutating originals.
-    const flat: Array<{ studio: Studio; review: Review }> = [];
+    const flat: Array<{ studio: IStudio; review: IApiReview }> = [];
     studioReviews.forEach(({ studio, reviews }) => {
       reviews.forEach((review) => {
         flat.push({ studio, review });
@@ -179,9 +195,9 @@ const ReviewsPage = () => {
   if (loading) {
     return (
       <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
-        <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-sm text-muted-foreground">Loading reviews…</p>
-        </div>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
     );
   }

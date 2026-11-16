@@ -4,6 +4,12 @@
  * the same place.
  */
 
+import type {
+  IApiReview,
+  IReviewEligibility,
+  ISubmitReviewPayload,
+} from "@/types/review";
+
 export async function fetchStudios(): Promise<unknown[]> {
   const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
   if (!baseUrl) {
@@ -34,23 +40,9 @@ export async function fetchStudios(): Promise<unknown[]> {
   }
 }
 
-export interface Review {
-  id: string;
-  author: string;
-  rating: number;
-  text: string;
-  date: string;
-}
-
-export interface SubmitReviewPayload {
-  author: string;
-  rating: number;
-  text: string;
-}
-
 export async function fetchStudioReviews(
   studioId: string,
-): Promise<Review[]> {
+): Promise<IApiReview[]> {
   const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
   if (!baseUrl) {
     console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
@@ -76,7 +68,7 @@ export async function fetchStudioReviews(
       return [];
     }
 
-    return data as Review[];
+    return data as IApiReview[];
   } catch (error) {
     console.error("Failed to load reviews:", error);
     return [];
@@ -85,7 +77,8 @@ export async function fetchStudioReviews(
 
 export async function submitStudioReview(
   studioId: string,
-  payload: SubmitReviewPayload,
+  payload: ISubmitReviewPayload,
+  token?: string,
 ): Promise<boolean> {
   const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
   if (!baseUrl) {
@@ -98,18 +91,19 @@ export async function submitStudioReview(
       `${baseUrl}/studios/${encodeURIComponent(studioId)}/reviews`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       },
     );
 
-    if (!response.ok) {
-      console.error(
-        `Submit review failed (${response.status})`,
-      );
-      return false;
-    }
-
+   if (!response.ok) {
+  const errorData = await response.json();
+  console.error("Review API error:", response.status, errorData);
+  return false;
+}
     return true;
   } catch (error) {
     console.error("Failed to submit review:", error);
@@ -117,14 +111,10 @@ export async function submitStudioReview(
   }
 }
 
-export interface ReviewEligibility {
-  canReview: boolean;
-  reason?: string;
-}
-
 export async function checkReviewEligibility(
   studioId: string,
-): Promise<ReviewEligibility> {
+  token?: string,
+): Promise<IReviewEligibility> {
   const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
   if (!baseUrl) {
     console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
@@ -133,21 +123,28 @@ export async function checkReviewEligibility(
 
   try {
     const response = await fetch(
-      `${baseUrl}/studios/${encodeURIComponent(studioId)}/reviews/eligibility`,
-      { cache: "no-store" },
+      `${baseUrl}/studios/${encodeURIComponent(studioId)}/review-eligibility`,
+      {
+        cache: "no-store",
+        ...(token ? { headers: { authorization: `Bearer ${token}` } } : {}),
+      },
     );
 
     if (!response.ok) {
-      console.error(
-        `Review eligibility check failed (${response.status})`,
-      );
-      return { canReview: false, reason: "Eligibility check failed" };
+      // A 404 means the eligibility endpoint is not implemented for this
+      // studio — treat the user as ineligible rather than surfacing an error.
+      return {
+        canReview: false,
+        reason:
+          response.status === 404
+            ? "Review eligibility endpoint unavailable"
+            : "Eligibility check failed",
+      };
     }
 
     const data: unknown = await response.json();
-    return data as ReviewEligibility;
-  } catch (error) {
-    console.error("Failed to check review eligibility:", error);
+    return data as IReviewEligibility;
+  } catch {
     return { canReview: false, reason: "Eligibility check failed" };
   }
 }

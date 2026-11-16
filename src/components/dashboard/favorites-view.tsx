@@ -5,8 +5,8 @@ import Link from "next/link";
 import { HeartIcon, UsersIcon } from "lucide-react";
 import { cn } from "cn";
 import { img } from "@/lib/images";
-import type { Studio } from "@/types/studio";
-import type { FavoriteItem } from "@/hooks/use-favorites";
+import type { IStudio } from "@/types/studio";
+import type { IFavoriteItem } from "@/types/favorite";
 import { StudioCard } from "@/components/studio/studio-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -32,7 +32,7 @@ const sortOptions: { key: FavoriteSortKey; label: string }[] = [
 const DEFAULT_SORT: FavoriteSortKey = "recent";
 
 interface FavoritesViewProps {
-  allStudios: Studio[];
+  allStudios: IStudio[];
 }
 
 /**
@@ -62,7 +62,6 @@ export const FavoritesView = ({ allStudios }: FavoritesViewProps) => {
       });
   }, [allStudios, items]);
 
-  // Sorting
   const sortedStudios = React.useMemo(() => {
     const result = [...favouritedStudios];
     switch (sort) {
@@ -142,7 +141,6 @@ export const FavoritesView = ({ allStudios }: FavoritesViewProps) => {
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div>
           <h1 className="font-heading text-3xl font-semibold tracking-[-0.03em]">

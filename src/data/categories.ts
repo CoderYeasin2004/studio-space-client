@@ -1,6 +1,6 @@
-import type { Category } from "@/types/studio";
+import type { ICategory } from "@/types/studio";
 
-export const categories: Category[] = [
+export const categories: ICategory[] = [
   {
     id: "photography",
     name: "Photography Studios",
@@ -38,6 +38,6 @@ export const categories: Category[] = [
   },
 ];
 
-export const categoryLabels: Record<Category["id"], string> = Object.fromEntries(
+export const categoryLabels: Record<ICategory["id"], string> = Object.fromEntries(
   categories.map((c) => [c.id, c.name]),
-) as Record<Category["id"], string>;
+) as Record<ICategory["id"], string>;

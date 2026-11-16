@@ -18,7 +18,6 @@ export const ExploreSkeleton = ({
         </div>
       )}
 
-      {/* Filter bar placeholder */}
       <div className="border-y border-border bg-background/80">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-5 py-4 sm:px-8 lg:flex-row lg:px-12">
           <div className="h-10 flex-1 animate-pulse rounded-full bg-muted" />
@@ -33,7 +32,6 @@ export const ExploreSkeleton = ({
         </div>
       </div>
 
-      {/* Results placeholder */}
       <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
         <div className="h-5 w-40 animate-pulse rounded bg-muted" />
         <div className="mt-7 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

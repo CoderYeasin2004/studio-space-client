@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import type { Booking } from "@/types/studio";
+import type { IBooking } from "@/types/studio";
 import { BookingsView } from "@/components/dashboard/bookings-view";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
 
 export const metadata: Metadata = {
   title: "My bookings — StudioSpace",
@@ -16,14 +17,22 @@ const BookingsPage = async () => {
   });
 
   const user = session?.user;
-  let bookings: Booking[] = [];
+  const token = await getTokenFromServer();
+
+  let bookings: IBooking[] = [];
 
   if (user?.email) {
     try {
+      if (!token) {
+        throw new Error("Authentication required");
+      }
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
         {
           cache: "no-store",
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
         },
       );
 
@@ -31,7 +40,7 @@ const BookingsPage = async () => {
         const data: unknown = await response.json();
 
         if (Array.isArray(data)) {
-          bookings = data as Booking[];
+          bookings = data as IBooking[];
         }
       }
     } catch {

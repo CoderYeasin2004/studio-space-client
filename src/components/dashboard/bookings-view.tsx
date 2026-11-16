@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { img } from "@/lib/images";
-import type { Booking, BookingStatus } from "@/types/studio";
+import { formatCurrency } from "@/lib/currency";
+import type { IBooking, TBookingStatus } from "@/types/studio";
 import { formatIsoDate } from "@/data/availability";
 import { StatusBadge } from "./status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -63,11 +64,11 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "all", label: "All" },
 ];
 
-const isUpcoming = (b: Booking) =>
+const isUpcoming = (b: IBooking) =>
   b.status === "confirmed" || b.status === "pending";
 
 /** Summary tiles derived from the filtered set. */
-const summarise = (rows: Booking[]) => {
+const summarise = (rows: IBooking[]) => {
   return {
     count: rows.length,
     hours: rows.reduce((sum, b) => sum + b.hours, 0),
@@ -81,28 +82,26 @@ const summarise = (rows: Booking[]) => {
  * page's API fetch; all filter state stays local.
  */
 
-export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
+export const BookingsView = ({ bookings }: { bookings: IBooking[] }) => {
   const [tab, setTab] = React.useState<TabKey>("upcoming");
-  const [status, setStatus] = React.useState<BookingStatus | "all">("all");
+  const [status, setStatus] = React.useState<TBookingStatus | "all">("all");
   const [query, setQuery] = React.useState("");
-  const [rows, setRows] = React.useState<Booking[]>(bookings);
+  const [rows, setRows] = React.useState<IBooking[]>(bookings);
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((booking) => {
-      if (tab === "upcoming" && !isUpcoming(booking)) return false;
-      if (tab === "past" && isUpcoming(booking)) return false;
-      if (status !== "all" && booking.status !== status) return false;
-      if (
-        q &&
-        !`${booking.studioName} ${booking.location} ${booking.date}`
-          .toLowerCase()
-          .includes(q)
-      )
-        return false;
-      return true;
-    });
-  }, [rows, tab, status, query]);
+  const q = query.trim().toLowerCase();
+  const filtered = rows.filter((booking) => {
+    if (tab === "upcoming" && !isUpcoming(booking)) return false;
+    if (tab === "past" && isUpcoming(booking)) return false;
+    if (status !== "all" && booking.status !== status) return false;
+    if (
+      q &&
+      !`${booking.studioName} ${booking.location} ${booking.date}`
+        .toLowerCase()
+        .includes(q)
+    )
+      return false;
+    return true;
+  });
 
   const stats = summarise(filtered);
   const isFiltered = status !== "all" || query.trim() !== "";
@@ -111,11 +110,28 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
     setStatus("all");
     setQuery("");
   };
-  const confirmBooking = async (booking: Booking) => {
+  const confirmBooking = async (booking: IBooking) => {
+    const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+    const token = await getTokenFromClient();
+    if (!token) {
+      toast.add({
+        type: "error",
+        title: "Authentication required",
+        description: "Please log in to confirm this booking.",
+      });
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}/confirm`,
-        { method: "PATCH" },
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (!response.ok) {
@@ -148,12 +164,27 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
     }
   };
 
-  const cancelBooking = async (booking: Booking) => {
+  const cancelBooking = async (booking: IBooking) => {
+    const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+    const token = await getTokenFromClient();
+    if (!token) {
+      toast.add({
+        type: "error",
+        title: "Authentication required",
+        description: "Please log in to cancel this booking.",
+      });
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}`,
         {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
         },
       );
 
@@ -183,18 +214,18 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
     }
   };
 
-  // ---- Mark as Completed ----
-  const [completingBooking, setCompletingBooking] = React.useState<Booking | null>(null);
+  const [completingBooking, setCompletingBooking] =
+    React.useState<IBooking | null>(null);
   const [completing, setCompleting] = React.useState(false);
 
-  const isBookingEnded = (booking: Booking): boolean => {
+  const isBookingEnded = (booking: IBooking): boolean => {
     const [endHour, endMin] = booking.endTime.split(":").map(Number);
     const endDate = new Date(booking.date);
     endDate.setHours(endHour, endMin ?? 0, 0, 0);
     return endDate < new Date();
   };
 
-  const openCompleteDialog = (booking: Booking) => {
+  const openCompleteDialog = (booking: IBooking) => {
     setCompletingBooking(booking);
   };
 
@@ -206,10 +237,29 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
     if (!completingBooking) return;
     setCompleting(true);
 
+    const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+    const token = await getTokenFromClient();
+    if (!token) {
+      toast.add({
+        type: "error",
+        title: "Authentication required",
+        description: "Please log in to complete this booking.",
+      });
+      closeCompleteDialog();
+      setCompleting(false);
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(completingBooking.id)}/complete`,
-        { method: "PATCH" },
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (response.status === 400) {
@@ -262,7 +312,6 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
 
   return (
     <div className="flex flex-col gap-7">
-      {/* ---------- Heading ---------- */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <span className="eyebrow text-primary">Manage</span>
@@ -282,7 +331,6 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
         </Button>
       </div>
 
-      {/* ---------- Summary tiles ---------- */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <SummaryTile
           icon={CalendarIcon}
@@ -297,12 +345,11 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
         <SummaryTile
           icon={WalletIcon}
           label="Total spend"
-          value={`£${stats.spend}`}
+          value={`${formatCurrency(stats.spend)}`}
           className="col-span-2 lg:col-span-1"
         />
       </div>
 
-      {/* ---------- Controls ---------- */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
           <TabsList className="h-9 w-full sm:w-auto">
@@ -329,7 +376,7 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
           <Select
             value={status}
             onValueChange={(v) =>
-              setStatus((v ?? "all") as BookingStatus | "all")
+              setStatus((v ?? "all") as TBookingStatus | "all")
             }
             items={statusItems}
           >
@@ -344,7 +391,7 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
                   "pending",
                   "completed",
                   "cancelled",
-                ] as BookingStatus[]
+                ] as TBookingStatus[]
               ).map((s) => (
                 <SelectItem key={s} value={s}>
                   {statusItems[s]}
@@ -366,7 +413,6 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
         </div>
       </div>
 
-      {/* ---------- Results ---------- */}
       {filtered.length === 0 ? (
         <EmptyState
           icon={SearchXIcon}
@@ -458,7 +504,7 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
                       </TableCell>
 
                       <TableCell className="text-right text-sm font-medium tabular-nums">
-                        £{booking.total}
+                        {formatCurrency(booking.total)}
                       </TableCell>
 
                       <TableCell>
@@ -486,14 +532,14 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
                               Cancel
                             </Button>
                           )}
-                          {booking.status === "confirmed" && isBookingEnded(booking) && (
+                          {booking.status === "confirmed" && (
                             <Button
                               variant="outline"
-              size="sm"
-              onClick={() => openCompleteDialog(booking)}
-            >
-              Mark as Completed
-            </Button>
+                              size="sm"
+                              onClick={() => openCompleteDialog(booking)}
+                            >
+                              Mark as Completed
+                            </Button>
                           )}
                           {slug && (
                             <Link
@@ -515,15 +561,17 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
         </div>
       )}
 
-      {/* Mark as Completed confirmation dialog */}
       <Dialog open={!!completingBooking} onOpenChange={closeCompleteDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Mark booking as completed?</DialogTitle>
             <DialogDescription>
               {completingBooking?.studioName} &bull;{" "}
-              {completingBooking?.date ? formatIsoDate(completingBooking.date) : ""} &bull;{" "}
-              {completingBooking?.startTime} – {completingBooking?.endTime}
+              {completingBooking?.date
+                ? formatIsoDate(completingBooking.date)
+                : ""}{" "}
+              &bull; {completingBooking?.startTime} –{" "}
+              {completingBooking?.endTime}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -546,7 +594,6 @@ export const BookingsView = ({ bookings }: { bookings: Booking[] }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

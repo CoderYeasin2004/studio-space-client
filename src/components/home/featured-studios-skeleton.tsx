@@ -13,20 +13,17 @@ export const FeaturedStudiosSkeleton = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-12">
-        {/* Tall portrait placeholder */}
         <div className="lg:col-span-4 lg:row-span-2">
           <div className="aspect-[3/4] w-full animate-pulse rounded-xl bg-muted" />
           <div className="mt-3 h-4 w-1/3 animate-pulse rounded bg-muted" />
           <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
         </div>
 
-        {/* Wide feature placeholder */}
         <div className="lg:col-span-8">
           <div className="aspect-[16/10] w-full animate-pulse rounded-xl bg-muted" />
           <div className="mt-3 h-4 w-1/3 animate-pulse rounded bg-muted" />
         </div>
 
-        {/* Four standard cards placeholders */}
         <div className="lg:col-span-4">
           <div className="aspect-[4/3] w-full animate-pulse rounded-xl bg-muted" />
           <div className="mt-3 h-4 w-1/3 animate-pulse rounded bg-muted" />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -9,9 +10,10 @@ import {
   StarIcon,
 } from "lucide-react";
 import { img } from "@/lib/images";
+import { formatCurrency } from "@/lib/currency";
 import { formatIsoDate } from "@/data/availability";
-import type { Studio } from "@/types/studio";
-import { AvailabilityCalendar } from "./availability-calendar";
+import type { IStudio } from "@/types/studio";
+import { DatePicker } from "./date-picker";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,12 +37,16 @@ type BookedSlot = {
   endTime: string;
 };
 
-const toMinutes = (time: string): number => {
+const toMinutes = (time: string | undefined | null): number | null => {
+  if (!time || typeof time !== "string") return null;
+
   const [hours, minutes] = time.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
   return hours * 60 + minutes;
 };
 
-/** Returns true if the requested slot [startHour, startHour+duration) conflicts with any booked slot. */
 const isSlotConflicting = (
   startHour: number,
   duration: number,
@@ -52,73 +58,76 @@ const isSlotConflicting = (
 
   return bookedSlots.some((booking) => {
     if (booking.date !== selectedDate) return false;
+
     const bStart = toMinutes(booking.startTime);
     const bEnd = toMinutes(booking.endTime);
+
+    if (bStart === null || bEnd === null) return false;
+
     return slotStart < bEnd && slotEnd > bStart;
   });
 };
 
-/**
- * Interactive booking panel: availability calendar, live time-slot filtering
- * based on real booked slots, price breakdown, and booking submission to
- * POST /studios/booking.
- */
-export const BookingCard = ({
+export const BookingForm = ({
   studio,
-  bookings: externalBookings,
-  onRefreshAvailability,
 }: {
-  studio: Studio;
-  bookings?: BookedSlot[];
-  onRefreshAvailability?: () => void;
+  studio: IStudio;
 }) => {
   const [date, setDate] = React.useState("");
-  const [startHour, setStartHour] = React.useState(10);
+  const [selectedStartHour, setSelectedStartHour] = React.useState(10);
   const [hours, setHours] = React.useState(2);
   const [submitting, setSubmitting] = React.useState(false);
   const [bookedSlots, setBookedSlots] = React.useState<BookedSlot[]>([]);
-  const [availabilityLoading, setAvailabilityLoading] = React.useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = React.useState(true);
   const [availabilityError, setAvailabilityError] = React.useState(false);
 
   const studioId = studio.id ?? studio._id ?? "";
-  const endHour = startHour + hours;
-  const subtotal = studio.hourlyPrice * hours;
-  const total = subtotal;
 
-  const effectiveBookings = externalBookings ?? bookedSlots;
+const effectiveBookings = bookedSlots;
 
-  const availableStartHours = START_HOURS.filter(
-    (hour) =>
-      hour + hours <= 23 && !isSlotConflicting(hour, hours, effectiveBookings, date)
-  );
+const availableStartHours = START_HOURS.filter(
+  (hour) =>
+    hour + hours <= 23 &&
+    !isSlotConflicting(hour, hours, effectiveBookings, date)
+);
 
-  // Fetch availability from the backend when studio or date changes.
+const startHour = availableStartHours.includes(selectedStartHour)
+  ? selectedStartHour
+  : availableStartHours[0] ?? selectedStartHour;
+
+const endHour = startHour + hours;
+const subtotal = studio.hourlyPrice * hours;
+const total = subtotal;
+
   React.useEffect(() => {
-    if (!studioId || externalBookings) return;
+    if (!studioId) return;
 
     let active = true;
-    setAvailabilityLoading(true);
-    setAvailabilityError(false);
 
     const loadAvailability = async () => {
       try {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
-          { cache: "no-store" },
+          { cache: "no-store" }
         );
 
         if (!response.ok) {
-          setAvailabilityError(true);
-          setAvailabilityLoading(false);
+          if (active) {
+            setAvailabilityError(true);
+          }
           return;
         }
 
         const data: unknown = await response.json();
+
         if (active && Array.isArray(data)) {
           setBookedSlots(data as BookedSlot[]);
+          setAvailabilityError(false);
         }
       } catch {
-        setAvailabilityError(true);
+        if (active) {
+          setAvailabilityError(true);
+        }
       } finally {
         if (active) {
           setAvailabilityLoading(false);
@@ -131,25 +140,28 @@ export const BookingCard = ({
     return () => {
       active = false;
     };
-  }, [studioId, date, externalBookings]);
+  }, [studioId, date]);
 
   const refreshAvailability = async () => {
     if (!studioId) return;
+
     setAvailabilityLoading(true);
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
-        { cache: "no-store" },
+        { cache: "no-store" }
       );
+
       if (response.ok) {
         const data: unknown = await response.json();
+
         if (Array.isArray(data)) {
           setBookedSlots(data as BookedSlot[]);
-          onRefreshAvailability?.();
         }
       }
     } catch {
-      // ignore
+      // Ignore refresh errors.
     } finally {
       setAvailabilityLoading(false);
     }
@@ -175,14 +187,30 @@ export const BookingCard = ({
     }
 
     if (submitting) return;
+
     setSubmitting(true);
 
     try {
+      const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+      const token = await getTokenFromClient();
+
+      if (!token) {
+        toast.add({
+          type: "error",
+          title: "Authentication required",
+          description: "Please log in to create a booking.",
+        });
+        return;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             studioId,
             studioSlug: studio.slug,
@@ -196,12 +224,13 @@ export const BookingCard = ({
             total,
             status: "pending",
           }),
-        },
+        }
       );
 
       if (response.status === 409) {
         const data = await response.json().catch(() => ({}));
         await refreshAvailability();
+
         toast.add({
           type: "warning",
           title: "Time slot unavailable",
@@ -221,6 +250,7 @@ export const BookingCard = ({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
+
         toast.add({
           type: "error",
           title: "Booking failed",
@@ -229,16 +259,16 @@ export const BookingCard = ({
         return;
       }
 
-      // Success: refresh availability so the new slot shows as booked.
       await refreshAvailability();
 
       toast.add({
         type: "success",
         title: "Booking request sent",
-        description: `${studio.name} · ${formatIsoDate(date)} · ${label(startHour)}–${label(endHour)} · £${total}`,
+        description: `${studio.name} · ${formatIsoDate(date)} · ${label(startHour)}–${label(endHour)} · ${formatCurrency(total)}`,
       });
     } catch (error) {
       console.error("Failed to submit booking:", error);
+
       toast.add({
         type: "error",
         title: "Couldn't send your booking request",
@@ -249,20 +279,9 @@ export const BookingCard = ({
     }
   };
 
-  // Auto-correct start hour when date or duration changes and the current
-  // selection is no longer available.
-  React.useEffect(() => {
-    if (
-      date &&
-      availableStartHours.length > 0 &&
-      !availableStartHours.includes(startHour)
-    ) {
-      setStartHour(availableStartHours[0]);
-    }
-  }, [date, hours, availableStartHours, startHour]);
-
   const handleMessage = () => {
     if (!studio.host) return;
+
     toast.add({
       type: "info",
       title: `Message sent to ${studio.host.name}`,
@@ -274,11 +293,10 @@ export const BookingCard = ({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Price head */}
       <div className="flex items-end justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3.5">
         <div>
           <p className="font-heading text-2xl font-semibold tracking-[-0.02em]">
-            £{studio.hourlyPrice}
+            {formatCurrency(studio.hourlyPrice)}
             <span className="text-sm font-normal text-muted-foreground">
               {" / hour"}
             </span>
@@ -287,6 +305,7 @@ export const BookingCard = ({
             Minimum 1 hour
           </p>
         </div>
+
         <span className="inline-flex items-center gap-1 text-sm font-medium">
           <StarIcon className="size-4 fill-current text-amber-500" />
           {studio.rating.toFixed(1)}
@@ -296,8 +315,7 @@ export const BookingCard = ({
         </span>
       </div>
 
-      {/* Availability calendar */}
-      <AvailabilityCalendar
+      <DatePicker
         studioId={studioId}
         selected={date}
         onSelect={setDate}
@@ -312,156 +330,166 @@ export const BookingCard = ({
         </div>
       )}
 
-      {/* Time controls and booking summary — only after a date is chosen */}
-      {date && (
-        <>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="start-time"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Start time
-              </label>
-              <Select
-                value={String(startHour)}
-                onValueChange={(v) => {
-                  const nextHour = Number(v ?? startHour);
-                  if (nextHour + hours <= 23) {
-                    setStartHour(nextHour);
-                  }
-                }}
-                disabled={availableStartHours.length === 0}
-              >
-                <SelectTrigger id="start-time" className="h-9 w-full bg-card">
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent
-                  side="bottom"
-                  alignItemWithTrigger={false}
-                  collisionAvoidance={{
-                    side: "shift",
-                    align: "shift",
-                    fallbackAxisSide: "none",
-                  }}
-                >
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="start-time"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Start time
+          </label>
+
+          <Select
+            value={date ? String(startHour) : ""}
+            onValueChange={(v) => {
+              const nextHour = Number(v ?? startHour);
+
+              if (availableStartHours.includes(nextHour)) {
+                setSelectedStartHour(nextHour);
+              }
+            }}
+            disabled={!date || availableStartHours.length === 0}
+          >
+            <SelectTrigger id="start-time" className="h-9 w-full bg-card">
+              <SelectValue
+                placeholder={date ? "Select time" : "Select a date first"}
+              />
+            </SelectTrigger>
+
+            <SelectContent
+              side="bottom"
+              alignItemWithTrigger={false}
+              collisionAvoidance={{
+                side: "shift",
+                align: "shift",
+                fallbackAxisSide: "none",
+              }}
+            >
+              {date ? (
+                <>
                   {availableStartHours.map((h) => (
                     <SelectItem key={h} value={String(h)}>
                       {label(h)}
                     </SelectItem>
                   ))}
+
                   {availableStartHours.length === 0 && (
                     <SelectItem key="none" value="none" disabled>
                       No available times
                     </SelectItem>
                   )}
-                </SelectContent>
-              </Select>
-            </div>
+                </>
+              ) : null}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="duration"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Duration
-              </label>
-              <Select
-                value={String(hours)}
-                onValueChange={(v) => setHours(Number(v ?? 2))}
-              >
-                <SelectTrigger id="duration" className="h-9 w-full bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent
-                  side="bottom"
-                  alignItemWithTrigger={false}
-                  collisionAvoidance={{
-                    side: "shift",
-                    align: "shift",
-                    fallbackAxisSide: "none",
-                  }}
-                >
-                  {DURATION_OPTIONS.map((h) => (
-                    <SelectItem key={h} value={String(h)}>
-                      {h} {h === 1 ? "hour" : "hours"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Booking summary */}
-          <div className="rounded-xl border border-border bg-card px-4 py-3.5">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Booking summary
-            </h3>
-            <div className="flex items-center justify-between py-0.5 text-sm">
-              <span className="text-muted-foreground">Studio</span>
-              <span className="text-foreground font-medium">{studio.name}</span>
-            </div>
-            <div className="flex items-center justify-between py-0.5 text-sm">
-              <span className="text-muted-foreground">Date</span>
-              <span className="text-foreground font-medium">
-                {formatIsoDate(date)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-0.5 text-sm">
-              <span className="text-muted-foreground">Time</span>
-              <span className="text-foreground font-medium">
-                {label(startHour)} – {label(endHour)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-0.5 text-sm">
-              <span className="text-muted-foreground">Duration</span>
-              <span className="text-foreground font-medium">
-                {hours} {hours === 1 ? "hour" : "hours"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-0.5 text-sm">
-              <span className="text-muted-foreground">Hourly price</span>
-              <span className="text-foreground font-medium tabular-nums">
-                £{studio.hourlyPrice}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between border-t border-border pt-2.5 font-medium">
-              <span className="text-muted-foreground">Total</span>
-              <span className="font-heading text-base font-semibold tabular-nums">
-                £{total}
-              </span>
-            </div>
-          </div>
-
-          <Button
-            size="lg"
-            onClick={handleBook}
-            disabled={
-              submitting ||
-              availableStartHours.length === 0 ||
-              !isStartTimeValid
-            }
-            className="h-12 w-full rounded-full"
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="duration"
+            className="text-xs font-medium text-muted-foreground"
           >
-            {submitting
-              ? "Processing…"
-              : `Request to book · ${formatIsoDate(date)}`}
-          </Button>
+            Duration
+          </label>
 
-          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            <ShieldCheckIcon className="size-3.5" />
-            Free cancellation up to 24 hours before
-          </p>
-        </>
-      )}
+          <Select
+            value={String(hours)}
+            onValueChange={(v) => setHours(Number(v ?? 2))}
+          >
+            <SelectTrigger id="duration" className="h-9 w-full bg-card">
+              <SelectValue />
+            </SelectTrigger>
 
-      {!date && (
-        <p className="text-xs text-center text-muted-foreground">
-          Select a date from the calendar to see available time slots.
-        </p>
-      )}
+            <SelectContent
+              side="bottom"
+              alignItemWithTrigger={false}
+              collisionAvoidance={{
+                side: "shift",
+                align: "shift",
+                fallbackAxisSide: "none",
+              }}
+            >
+              {DURATION_OPTIONS.map((h) => (
+                <SelectItem key={h} value={String(h)}>
+                  {h} {h === 1 ? "hour" : "hours"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-      {/* Host row */}
+      <div className="rounded-xl border border-border bg-card px-4 py-3.5">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Booking summary
+        </h3>
+
+        <div className="flex items-center justify-between py-0.5 text-sm">
+          <span className="text-muted-foreground">Studio</span>
+          <span className="text-foreground font-medium">{studio.name}</span>
+        </div>
+
+        <div className="flex items-center justify-between py-0.5 text-sm">
+          <span className="text-muted-foreground">Date</span>
+          <span className="text-foreground font-medium">
+            {date ? formatIsoDate(date) : "—"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between py-0.5 text-sm">
+          <span className="text-muted-foreground">Time</span>
+          <span className="text-foreground font-medium">
+            {date
+              ? `${label(startHour)} – ${label(endHour)}`
+              : "Select a date first"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between py-0.5 text-sm">
+          <span className="text-muted-foreground">Duration</span>
+          <span className="text-foreground font-medium">
+            {hours} {hours === 1 ? "hour" : "hours"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between py-0.5 text-sm">
+          <span className="text-muted-foreground">Hourly price</span>
+          <span className="text-foreground font-medium tabular-nums">
+            {formatCurrency(studio.hourlyPrice)}
+          </span>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between border-t border-border pt-2.5 font-medium">
+          <span className="text-muted-foreground">Total</span>
+          <span className="font-heading text-base font-semibold tabular-nums">
+            {formatCurrency(total)}
+          </span>
+        </div>
+      </div>
+
+      <Button
+        size="lg"
+        onClick={handleBook}
+        disabled={
+          submitting ||
+          !date ||
+          availableStartHours.length === 0 ||
+          !isStartTimeValid
+        }
+        className="h-12 w-full rounded-full"
+      >
+        {submitting
+          ? "Processing…"
+          : date
+            ? `Request to book · ${formatIsoDate(date)}`
+            : "Request to book"}
+      </Button>
+
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheckIcon className="size-3.5" />
+        Free cancellation up to 24 hours before
+      </p>
+
       {studio.host && (
         <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
           <div className="relative size-11 shrink-0 overflow-hidden rounded-full bg-muted">

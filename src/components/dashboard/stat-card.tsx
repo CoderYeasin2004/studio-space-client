@@ -9,7 +9,7 @@ import {
   CalendarIcon,
 } from "lucide-react";
 import { cn } from "cn";
-import type { DashboardStat } from "@/types/studio";
+import type { IDashboardStat } from "@/types/studio";
 import type { LucideIcon } from "lucide-react";
 
 const icons: Record<string, LucideIcon> = {
@@ -19,7 +19,7 @@ const icons: Record<string, LucideIcon> = {
   paused: PauseCircleIcon,
 };
 /** One KPI tile on the dashboard overview. */
-export const StatCard = ({ stat }: { stat: DashboardStat }) => {
+export const StatCard = ({ stat }: { stat: IDashboardStat }) => {
   const Icon = icons[stat.icon] ?? CalendarIcon;
   const Trend =
     stat.trend === "up"

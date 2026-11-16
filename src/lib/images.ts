@@ -28,6 +28,13 @@ export const img = (
     }
   }
 
-  // Unsplash photo ID
+  // Unsplash photo IDs are long alphanumeric strings (e.g. "abc123def456").
+  // Reject malformed ids such as single characters or values that already
+  // include the "photo-" prefix (which would double-prefix the URL and
+  // produce an invalid Unsplash URL like "photo-photo-Y").
+  if (id.startsWith("photo-") || id.length < 4) {
+    return "/images/studio-placeholder.jpg";
+  }
+
   return `https://images.unsplash.com/photo-${id}?auto=format&quality=82&${SIZES[size]}`;
 };

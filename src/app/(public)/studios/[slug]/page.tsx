@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -10,20 +9,26 @@ import {
   StarIcon,
   UsersIcon,
 } from "lucide-react";
-import { fetchStudios, fetchStudioReviews, submitStudioReview, type Review } from "@/lib/api/studios";
-import type { Studio } from "@/types/studio";
+import {
+  fetchStudios,
+  fetchStudioReviews,
+  submitStudioReview,
+  checkReviewEligibility,
+} from "@/lib/api/studios";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import type { IApiReview } from "@/types/review";
+import type { IStudio } from "@/types/studio";
 import { categoryLabels } from "@/data/categories";
-import { img } from "@/lib/images";
+import { HostAvatar } from "@/components/studios/host-avatar";
 import { Gallery } from "@/components/studios/gallery";
-import { BookingCard } from "@/components/studios/booking-card";
-import { AmenityIcon } from "@/components/studios/amenity-icon";
+import { BookingForm } from "@/components/studios/booking-form";
 import { StudioCard } from "@/components/studio/studio-card";
 import { ReviewForm } from "@/components/studios/review-form";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Badge } from "@/components/ui/badge";
+import { connection } from "next/server";
 
-
-
+export const instant = false;
 export const generateMetadata = async ({
   params,
 }: {
@@ -34,14 +39,14 @@ export const generateMetadata = async ({
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
-      { cache: "no-store" }
+      { cache: "no-store" },
     );
 
     if (!response.ok) {
       return { title: "Studio not found — StudioSpace" };
     }
 
-    const studio: Studio = await response.json();
+    const studio: IStudio = await response.json();
 
     return {
       title: `${studio.name} — StudioSpace`,
@@ -52,59 +57,69 @@ export const generateMetadata = async ({
   }
 };
 
-
 const StudioDetailsPage = async ({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) => {
- const { slug } = await params;
+  const { slug } = await params;
 
-const response = await fetch(
-  `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
-  {
-    cache: "no-store",
+  await connection();
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    notFound();
   }
-);
 
-if (!response.ok) {
-  notFound();
-}
+  const studioData: IStudio = await response.json();
 
-const studioData: Studio = await response.json();
+  const studioId = studioData._id ?? studioData.id;
 
-const studioId = studioData._id ?? studioData.id;
-
-if (!studioId) {
-  notFound();
-}
-
-const studio: Studio = {
-  ...studioData,
-  id: studioData._id ?? studioData.id ?? "",
-};
-
-const currentHostEmail = studioData.creatorEmail as string | undefined;
-
-const allStudios: Studio[] = (await fetchStudios()) as Studio[];
-
-const related = allStudios
-  .filter((s) => s.id !== studio.id && s.category === studio.category)
-  .sort((a, b) => {
-    const aIsSameHost = a.creatorEmail === currentHostEmail;
-    const bIsSameHost = b.creatorEmail === currentHostEmail;
-    if (aIsSameHost && !bIsSameHost) return -1;
-    if (!aIsSameHost && bIsSameHost) return 1;
-    return 0;
-  })
-  .slice(0, 3);
-
-const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
-  (a, b) => {
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  if (!studioId) {
+    notFound();
   }
-).slice(0, 3);
+
+  const studio: IStudio = {
+    ...studioData,
+    id: studioData._id ?? studioData.id ?? "",
+  };
+
+  const currentHostEmail = studioData.creatorEmail as string | undefined;
+
+  const token = await getTokenFromServer();
+
+  const reviewEligibility = await checkReviewEligibility(
+    studioId,
+    token ?? undefined,
+  );
+  const canReview = reviewEligibility.canReview === true;
+  const bookingId = reviewEligibility.bookingId ?? "";
+
+  const allStudios: IStudio[] = (await fetchStudios()) as IStudio[];
+
+  const related = allStudios
+    .filter((s) => s.id !== studio.id && s.category === studio.category)
+    .sort((a, b) => {
+      const aIsSameHost = a.creatorEmail === currentHostEmail;
+      const bIsSameHost = b.creatorEmail === currentHostEmail;
+      if (aIsSameHost && !bIsSameHost) return -1;
+      if (!aIsSameHost && bIsSameHost) return 1;
+      return 0;
+    })
+    .slice(0, 3);
+
+  const studioReviews: IApiReview[] = (await fetchStudioReviews(studioId))
+    .sort((a, b) => {
+      if (b.rating !== a.rating) return b.rating - a.rating;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    })
+    .slice(0, 3);
   const specs = [
     { icon: UsersIcon, label: "Capacity", value: `${studio.capacity} people` },
     { icon: RulerIcon, label: "Floor area", value: `${studio.size} m²` },
@@ -116,9 +131,38 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
     { icon: Maximize2Icon, label: "Minimum", value: "1 hour" },
   ];
 
+  const getInitials = (name: string): string => {
+    const parts = name.trim().split(/\s+/);
+    return parts
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join("");
+  };
+
+  const avatarColor = (name: string): string => {
+    const colors = [
+      "#eff6ff", "#f0fdf4", "#fff1f2", "#fffbeb", "#f3e8ff", "#fce7f3",
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const avatarTextColor = (name: string): string => {
+    const colors = [
+      "#1d4ed8", "#15803d", "#9d174d", "#92400e", "#6b21a8", "#9f1239",
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   return (
     <article className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
-      {/* ---------- Breadcrumb ---------- */}
       <nav aria-label="Breadcrumb">
         <Link
           href="/studios"
@@ -129,7 +173,6 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
         </Link>
       </nav>
 
-      {/* ---------- Title block ---------- */}
       <header className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-3.5">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -167,22 +210,34 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
             </span>
           ))}
         </div>
+
+        {studio.amenities.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Amenities
+            </span>
+            {studio.amenities.map((amenity) => (
+              <span
+                key={amenity.name}
+                className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground"
+              >
+                {amenity.name}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
-      {/* ---------- Gallery ---------- */}
       <div className="mt-8">
         <Gallery images={studio.images} name={studio.name} />
       </div>
 
-      {/* ---------- Body ---------- */}
       <div className="mt-12 grid gap-10 lg:grid-cols-12 lg:gap-12">
-        {/* Booking column — first on mobile, sticky rail on desktop */}
-        <aside className="order-first lg:order-none lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
-          <BookingCard studio={studio} />
+        <aside className="order-first lg:order-none lg:col-span-5">
+          <BookingForm studio={studio} />
         </aside>
 
         <div className="flex flex-col gap-14 lg:col-span-7">
-          {/* About */}
           <section aria-labelledby="about-space">
             <h2
               id="about-space"
@@ -195,7 +250,6 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
             </p>
           </section>
 
-          {/* Specs */}
           <section aria-label="Space specifications">
             <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {specs.map((spec) => {
@@ -218,77 +272,64 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
             </dl>
           </section>
 
-          {/* Amenities */}
-          <section aria-labelledby="amenities-heading">
-            <h2
-              id="amenities-heading"
-              className="font-heading text-2xl font-semibold tracking-[-0.02em]"
-            >
-              What this space offers
-            </h2>
-            <ul className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {studio.amenities.map((amenity) => (
-                <li
-                  key={amenity.name}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm"
-                >
-                  <AmenityIcon
-                    name={amenity.icon}
-                    className="size-4 shrink-0 text-primary"
-                  />
-                  {amenity.name}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Host */}
-         {studio.host && (
-  <section aria-labelledby="host-heading">
+          <section aria-labelledby="host-heading">
             <h2
               id="host-heading"
               className="font-heading text-2xl font-semibold tracking-[-0.02em]"
             >
               Your host
             </h2>
+
             <div className="mt-4 flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-start">
               <div className="relative size-16 shrink-0 overflow-hidden rounded-full bg-muted">
-                <Image
-                  src={img(studio.host.avatar, "avatar")}
-                  alt={studio.host.name}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
+                <HostAvatar
+                  avatar={studio.host?.avatar ?? ""}
+                  alt={studio.host?.name ?? "Studio host"}
                 />
               </div>
+
               <div className="flex flex-col gap-2">
                 <div>
                   <p className="font-heading font-semibold">
-                    {studio.host.name}
+                    {studio.host?.name ?? "Studio Host"}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {studio.host.role} · Hosting since {studio.host.since}
-                  </p>
+
+                  {studio.host?.role && (
+                    <p className="text-sm text-muted-foreground">
+                      {studio.host.role}
+                      {studio.host.since
+                        ? ` · Hosting since ${studio.host.since}`
+                        : ""}
+                    </p>
+                  )}
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground text-balance">
-                  {studio.host.bio}
-                </p>
+
+                {currentHostEmail && (
+                  <p className="text-sm text-muted-foreground">
+                    Host Email: {currentHostEmail}
+                  </p>
+                )}
+
+                {studio.host?.bio && (
+                  <p className="text-sm leading-relaxed text-muted-foreground text-balance">
+                    {studio.host.bio}
+                  </p>
+                )}
+
                 <Badge className="mt-1 w-fit bg-primary/10 text-primary hover:bg-primary/10">
                   Identity verified
                 </Badge>
               </div>
             </div>
           </section>
-)}
 
-          {/* Reviews */}
           <section aria-labelledby="reviews-heading">
             <div className="flex items-end justify-between gap-4">
               <h2
                 id="reviews-heading"
                 className="font-heading text-2xl font-semibold tracking-[-0.02em]"
               >
-                What creators say
+                What People Say About This Studio
               </h2>
               <div className="flex items-center gap-2">
                 <span className="font-heading text-2xl font-semibold tabular-nums">
@@ -324,10 +365,11 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Write a review
               </h3>
-              <ReviewForm studioId={studioId} onReviewAdded={() => {
-                // Refresh reviews by triggering a re-render through session
-                // The page will refetch on next render
-              }} />
+              <ReviewForm
+                studioId={studioId}
+                bookingId={bookingId}
+                canReview={canReview}
+              />
             </div>
 
             <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -337,14 +379,16 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
                   className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4"
                 >
                   <figcaption className="flex items-center gap-3">
-                    <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-muted">
-                      <Image
-                        src={img(review.author.substring(0, 1), "avatar")}
-                        alt=""
-                        fill
-                        sizes="36px"
-                        className="object-cover"
-                      />
+                    <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-muted flex items-center justify-center">
+                      <span
+                        className="text-xs font-medium"
+                        style={{
+                          backgroundColor: avatarColor(review.author),
+                          color: avatarTextColor(review.author),
+                        }}
+                      >
+                        {getInitials(review.author)}
+                      </span>
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
@@ -352,7 +396,10 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
                       </p>
                     </div>
                   </figcaption>
-                  <span className="flex" aria-label={`${review.rating} out of 5`}>
+                  <span
+                    className="flex"
+                    aria-label={`${review.rating} out of 5`}
+                  >
                     {Array.from({ length: 5 }).map((_, i) => (
                       <StarIcon
                         key={i}
@@ -382,19 +429,16 @@ const studioReviews: Review[] = (await fetchStudioReviews(studioId)).sort(
             </div>
           </section>
 
-          {/* Related */}
           <section aria-labelledby="related-heading">
             <SectionHeader
               eyebrow="Keep looking"
-              title={
-                <span id="related-heading">Similar spaces</span>
-              }
+              title={<span id="related-heading">Similar spaces</span>}
               action={{ label: "All studios", href: "/studios" }}
               className="mb-6"
             />
             <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-3">
               {related.map((s) => (
-                <StudioCard key={s.id} studio={s} ratio="video" />
+                <StudioCard key={s._id ?? s.id} studio={s} ratio="video" />
               ))}
             </div>
           </section>

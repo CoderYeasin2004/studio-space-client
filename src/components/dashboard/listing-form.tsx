@@ -7,14 +7,15 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, CheckIcon, FileTextIcon, InfoIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
 import { categories, categoryLabels } from "@/data/categories";
-import type { ListingStatus, Studio, StudioAmenity } from "@/types/studio";
+import { formatCurrency } from "@/lib/currency";
+import type { TListingStatus, IStudio, IStudioAmenity } from "@/types/studio";
 import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { useSession } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 import {
   Select,
   SelectContent,
@@ -31,7 +32,8 @@ import {
 } from "@/components/ui/card";
 import { AmenityIcon } from "@/components/studios/amenity-icon";
 
-const AMENITY_OPTIONS: StudioAmenity[] = [
+
+const AMENITY_OPTIONS: IStudioAmenity[] = [
   { name: "Fast Wi-Fi", icon: "wifi" },
   { name: "Blackout blinds", icon: "moon" },
   { name: "Client lounge", icon: "sofa" },
@@ -46,7 +48,7 @@ const AMENITY_OPTIONS: StudioAmenity[] = [
   { name: "Editing suite", icon: "monitor" },
 ];
 
-const statusItems: Record<ListingStatus, string> = {
+const statusItems: Record<TListingStatus, string> = {
   live: "Live — visible in Explore",
   draft: "Draft — only you can see it",
   paused: "Paused — hidden until resumed",
@@ -62,7 +64,8 @@ interface ListingFormState {
   capacity: string;
   size: string;
   price: string;
-  status: ListingStatus;
+  securityDeposit: string;
+  status: TListingStatus;
 }
 
 const emptyState: ListingFormState = {
@@ -75,21 +78,25 @@ const emptyState: ListingFormState = {
   capacity: "8",
   size: "60",
   price: "75",
+  securityDeposit: "0",
   status: "draft",
 };
 
-const stateFrom = (studio: Studio): ListingFormState => {
+const stateFrom = (studio: IStudio): ListingFormState => {
   return {
-    name: studio.name,
-    category: studio.category,
-    city: studio.city,
-    location: studio.location,
-    description: studio.description,
-    longDescription: studio.longDescription,
-    capacity: String(studio.capacity),
-    size: String(studio.size),
-    price: String(studio.hourlyPrice),
-    status: studio.status,
+    name: studio.name ?? "",
+    category: studio.category ?? emptyState.category,
+    city: studio.city ?? "",
+    location: studio.location ?? "",
+    description: studio.description ?? "",
+    longDescription: studio.longDescription ?? "",
+    capacity: String(studio.capacity ?? 8),
+    size: String(studio.size ?? 60),
+    price: String(studio.hourlyPrice ?? 75),
+    securityDeposit: String(
+      (studio as unknown as Record<string, unknown>).securityDeposit ?? 0,
+    ),
+    status: studio.status ?? "draft",
   };
 };
 
@@ -97,7 +104,7 @@ export const ListingForm = ({
   initial,
   listingId,
 }: {
-  initial?: Studio;
+  initial?: IStudio;
   listingId?: string;
 }) => {
   const router = useRouter();
@@ -114,20 +121,57 @@ export const ListingForm = ({
   const [imageUrls, setImageUrls] = React.useState<string[]>(
     initial?.images ?? [],
   );
-  const [amenities, setAmenities] = React.useState<StudioAmenity[]>(
-    initial ? initial.amenities : [],
-  );
+ const [amenities, setAmenities] = React.useState<IStudioAmenity[]>(
+  initial?.amenities ?? [],
+);
 
   const [saving, setSaving] = React.useState(false);
 
-  const update = <K extends keyof ListingFormState>(
-    key: K,
-    value: ListingFormState[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const setName = (value: string) => {
+    setForm((prev) => ({ ...prev, name: value }));
   };
 
-  const toggleAmenity = (option: StudioAmenity) => {
+  const setCategory = (value: string) => {
+    setForm((prev) => ({ ...prev, category: value }));
+  };
+
+  const setStatus = (value: TListingStatus) => {
+    setForm((prev) => ({ ...prev, status: value }));
+  };
+
+  const setCity = (value: string) => {
+    setForm((prev) => ({ ...prev, city: value }));
+  };
+
+  const setLocation = (value: string) => {
+    setForm((prev) => ({ ...prev, location: value }));
+  };
+
+  const setDescription = (value: string) => {
+    setForm((prev) => ({ ...prev, description: value }));
+  };
+
+  const setLongDescription = (value: string) => {
+    setForm((prev) => ({ ...prev, longDescription: value }));
+  };
+
+  const setCapacity = (value: string) => {
+    setForm((prev) => ({ ...prev, capacity: value }));
+  };
+
+  const setSize = (value: string) => {
+    setForm((prev) => ({ ...prev, size: value }));
+  };
+
+  const setPrice = (value: string) => {
+    setForm((prev) => ({ ...prev, price: value }));
+  };
+
+  const setSecurityDeposit = (value: string) => {
+    setForm((prev) => ({ ...prev, securityDeposit: value }));
+  };
+
+  const toggleAmenity = (option: IStudioAmenity) => {
     setAmenities((prev) =>
       prev.some((a) => a.name === option.name)
         ? prev.filter((a) => a.name !== option.name)
@@ -171,9 +215,11 @@ export const ListingForm = ({
   }
 };
 
-  // ---------- Submit Form ----------
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+    const token = await getTokenFromClient();
     if (!user) {
   toast.add({
     type: "warning",
@@ -183,7 +229,6 @@ export const ListingForm = ({
   return;
 }
 
-    // Validate before sending anything to MongoDB
     if (form.name.trim().length < 3) {
       toast.add({
         type: "warning",
@@ -213,11 +258,20 @@ export const ListingForm = ({
     const price = Number(form.price);
     const capacity = Number(form.capacity);
     const size = Number(form.size);
+    const securityDeposit = Number(form.securityDeposit);
 
     if (!Number.isFinite(price) || price <= 0) {
       toast.add({
         type: "warning",
         title: "Set a valid hourly price",
+      });
+      return;
+    }
+
+    if (!Number.isFinite(securityDeposit) || securityDeposit < 0) {
+      toast.add({
+        type: "warning",
+        title: "Set a valid security deposit",
       });
       return;
     }
@@ -240,10 +294,9 @@ export const ListingForm = ({
     const submitter = (e.nativeEvent as SubmitEvent).submitter;
     const intent =
       submitter instanceof HTMLButtonElement ? submitter.value : "";
-    const status: ListingStatus =
+    const status: TListingStatus =
       intent === "publish" ? "live" : intent === "draft" ? "draft" : form.status;
 
-    // Build the MongoDB document
     const newStudio = {
       name: form.name.trim(),
       slug: form.name
@@ -260,6 +313,7 @@ export const ListingForm = ({
       capacity,
       size,
       hourlyPrice: price,
+      securityDeposit,
       status,
       amenities,
       images: imageUrls,
@@ -280,15 +334,25 @@ export const ListingForm = ({
     try {
       setSaving(true);
 
+      if (!token) {
+        toast.add({
+          type: "error",
+          title: "Authentication required",
+          description: "Please log in to save your studio listing.",
+        });
+        return;
+      }
+
       const endpoint =
         isEdit && listingId
           ? `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(listingId)}`
           : `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`;
-
+     
       const response = await fetch(endpoint, {
         method: isEdit ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(
           isEdit
@@ -319,7 +383,7 @@ export const ListingForm = ({
         description: `${form.name} has been ${isEdit ? "updated" : "saved"}.`,
       });
 
-      router.push("/dashboard/listings");
+      router.push("/dashboard/my-listings");
     } catch {
       toast.add({
         type: "error",
@@ -335,9 +399,8 @@ export const ListingForm = ({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
-      {/* ---------- Back link ---------- */}
       <Link
-        href="/dashboard/listings"
+        href="/dashboard/my-listings"
         className="group inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
@@ -345,9 +408,40 @@ export const ListingForm = ({
       </Link>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-        {/* ---------- Main column ---------- */}
         <div className="flex flex-col gap-6 lg:col-span-8">
-          {/* Basics */}
+          <Card className="gap-5">
+            <CardHeader>
+              <CardTitle className="font-heading text-lg tracking-[-0.01em]">
+                Account
+              </CardTitle>
+              <CardDescription>
+                Listings are created under your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-3">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="listing-user-name">Name</Label>
+                <Input
+                  id="listing-user-name"
+                  type="text"
+                  value={user?.name ?? ""}
+                  readOnly
+                  className="h-10 bg-muted cursor-not-allowed"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="listing-user-email">Email</Label>
+                <Input
+                  id="listing-user-email"
+                  type="email"
+                  value={user?.email ?? ""}
+                  readOnly
+                  className="h-10 bg-muted cursor-not-allowed"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="gap-5">
             <CardHeader>
               <CardTitle className="font-heading text-lg tracking-[-0.01em]">
@@ -365,7 +459,7 @@ export const ListingForm = ({
                   id="listing-name"
                   name="name"
                   value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Lumen Daylight Loft"
                   className="h-10 bg-card"
                 />
@@ -376,7 +470,7 @@ export const ListingForm = ({
                 <Select
                   value={form.category}
                   onValueChange={(v) =>
-                    update("category", v ?? emptyState.category)
+                    setCategory(v ?? emptyState.category)
                   }
                   items={Object.fromEntries(
                     categories.map((c) => [c.id, c.name]),
@@ -404,7 +498,7 @@ export const ListingForm = ({
                 <Select
                   value={form.status}
                   onValueChange={(v) =>
-                    update("status", (v ?? "draft") as ListingStatus)
+                    setStatus(v ?? "draft")
                   }
                   items={statusItems}
                 >
@@ -416,7 +510,7 @@ export const ListingForm = ({
                   </SelectTrigger>
 
                   <SelectContent>
-                    {(Object.keys(statusItems) as ListingStatus[]).map((s) => (
+                    {(Object.keys(statusItems) as TListingStatus[]).map((s) => (
                       <SelectItem key={s} value={s}>
                         {statusItems[s]}
                       </SelectItem>
@@ -431,7 +525,7 @@ export const ListingForm = ({
                   id="listing-city"
                   name="city"
                   value={form.city}
-                  onChange={(e) => update("city", e.target.value)}
+                  onChange={(e) => setCity(e.target.value)}
                   placeholder="London"
                   className="h-10 bg-card"
                 />
@@ -443,7 +537,7 @@ export const ListingForm = ({
                   id="listing-location"
                   name="location"
                   value={form.location}
-                  onChange={(e) => update("location", e.target.value)}
+                  onChange={(e) => setLocation(e.target.value)}
                   placeholder="Shoreditch, London"
                   className="h-10 bg-card"
                 />
@@ -455,7 +549,7 @@ export const ListingForm = ({
                   id="listing-description"
                   value={form.description}
                   name="description"
-                  onChange={(e) => update("description", e.target.value)}
+                  onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="One or two sentences shown on the card and at the top of the page."
                   className="min-h-24 bg-card text-[15px] leading-relaxed"
@@ -471,7 +565,7 @@ export const ListingForm = ({
                   id="listing-long"
                   value={form.longDescription}
                   name="longDescription"
-                  onChange={(e) => update("longDescription", e.target.value)}
+                  onChange={(e) => setLongDescription(e.target.value)}
                   rows={5}
                   placeholder="Everything a booker needs: light, access, kit on site, house rules."
                   className="min-h-36 bg-card text-[15px] leading-relaxed"
@@ -480,7 +574,6 @@ export const ListingForm = ({
             </CardContent>
           </Card>
 
-          {/* Amenities */}
           <Card className="gap-5">
             <CardHeader>
               <CardTitle className="font-heading text-lg tracking-[-0.01em]">
@@ -505,7 +598,7 @@ export const ListingForm = ({
                       aria-pressed={selected}
                       onClick={() => toggleAmenity(option)}
                       className={cn(
-                        "inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50",
+                        "inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium cursor-pointer outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50",
                         selected
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -526,7 +619,6 @@ export const ListingForm = ({
             </CardContent>
           </Card>
 
-          {/* Photos */}
           <Card className="gap-5">
             <CardHeader>
               <CardTitle className="font-heading text-lg tracking-[-0.01em]">
@@ -538,7 +630,6 @@ export const ListingForm = ({
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {/* Image URL Input */}
               <div className="flex gap-2">
                 <Input
                   type="url"
@@ -558,7 +649,6 @@ export const ListingForm = ({
                 </Button>
               </div>
 
-              {/* Image Preview */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {imageUrls.map((image, index) => (
                   <div
@@ -585,7 +675,7 @@ export const ListingForm = ({
                           prev.filter((_, i) => i !== index),
                         )
                       }
-                      className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-1 text-xs text-white"
+                      className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-1 text-xs text-white cursor-pointer"
                     >
                       Remove
                     </button>
@@ -596,7 +686,6 @@ export const ListingForm = ({
           </Card>
         </div>
 
-        {/* ---------- Sidebar ---------- */}
         <aside className="flex flex-col gap-6 lg:col-span-4">
           <Card className="gap-5 lg:sticky lg:top-24">
             <CardHeader>
@@ -616,7 +705,7 @@ export const ListingForm = ({
                   min={1}
                   max={500}
                   value={form.capacity}
-                  onChange={(e) => update("capacity", e.target.value)}
+                  onChange={(e) => setCapacity(e.target.value)}
                   className="h-10 bg-card tabular-nums"
                 />
               </div>
@@ -630,13 +719,13 @@ export const ListingForm = ({
                   min={4}
                   max={5000}
                   value={form.size}
-                  onChange={(e) => update("size", e.target.value)}
+                  onChange={(e) => setSize(e.target.value)}
                   className="h-10 bg-card tabular-nums"
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="listing-price">Hourly price (£)</Label>
+                <Label htmlFor="listing-price">Hourly price (BDT)</Label>
                 <Input
                   id="listing-price"
                   type="number"
@@ -644,7 +733,7 @@ export const ListingForm = ({
                   min={1}
                   step={5}
                   value={form.price}
-                  onChange={(e) => update("price", e.target.value)}
+                  onChange={(e) => setPrice(e.target.value)}
                   className="h-10 bg-card tabular-nums"
                 />
                 <p className="text-xs text-muted-foreground">
@@ -652,9 +741,27 @@ export const ListingForm = ({
                 </p>
               </div>
 
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="listing-security-deposit">
+                  Security deposit (BDT)
+                </Label>
+                <Input
+                  id="listing-security-deposit"
+                  type="number"
+                  name="securityDeposit"
+                  min={0}
+                  step={50}
+                  value={form.securityDeposit}
+                  onChange={(e) => setSecurityDeposit(e.target.value)}
+                  className="h-10 bg-card tabular-nums"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Refundable deposit held at booking.
+                </p>
+              </div>
+
               <Separator />
 
-              {/* Preview */}
               <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3.5 text-sm">
                 <p className="font-medium">Preview</p>
 
@@ -665,7 +772,7 @@ export const ListingForm = ({
                 <p className="text-muted-foreground">
                   {form.city.trim() || "City"} · {form.capacity || "0"} people ·{" "}
                   <span className="font-medium text-foreground">
-                    £{form.price || "0"}/hr
+                    {formatCurrency(form.price || 0)}/hr
                   </span>
                 </p>
 
@@ -676,7 +783,6 @@ export const ListingForm = ({
                 </p>
               </div>
 
-              {/* Buttons */}
               <div className="flex flex-col gap-2.5">
                 <Button
                   type="submit"
@@ -710,7 +816,7 @@ export const ListingForm = ({
                   variant="outline"
                   size="lg"
                   className="h-11 w-full rounded-full"
-                  onClick={() => router.push("/dashboard/listings")}
+                  onClick={() => router.push("/dashboard/my-listings")}
                 >
                   <XIcon className="size-4" />
                   Cancel

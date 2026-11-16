@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { Studio } from "@/types/studio";
+import type { IStudio } from "@/types/studio";
 import { ListingForm } from "@/components/dashboard/listing-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -92,7 +92,7 @@ const EditListing = async ({
 };
 
 
-const getListing = async (id: string): Promise<Studio | undefined> => {
+const getListing = async (id: string): Promise<IStudio | undefined> => {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(id)}`,
     {

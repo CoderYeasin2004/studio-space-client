@@ -4,7 +4,6 @@ import { CheckIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CurrentYear } from "@/components/shared/current-year";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { img } from "@/lib/images";
 
 const promises = [
   "Browse hundreds of visited studios",
@@ -24,10 +23,9 @@ const AuthLayout = ({
 }) => {
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1fr] xl:grid-cols-[1.2fr_1fr]">
-      {/* ---------- Brand panel ---------- */}
       <aside className="relative hidden overflow-hidden bg-[#171326] lg:block">
         <Image
-          src={img("1560787313-5dff3307e257", "hero")}
+          src="/images/auth/login-bg.jpg"
           alt=""
           fill
           priority
@@ -74,7 +72,6 @@ const AuthLayout = ({
         </div>
       </aside>
 
-      {/* ---------- Form column ---------- */}
       <div className="flex min-h-screen flex-col bg-background">
         <header className="flex h-16 items-center justify-between gap-4 px-5 sm:px-8">
           <div className="lg:hidden">

@@ -20,9 +20,9 @@ const supportLinks = [
 ];
 
 const hostLinks = [
-  { label: "List your studio", href: "/dashboard/listings/new" },
+  { label: "List your studio", href: "/dashboard/my-listings/new-studios" },
   { label: "Host dashboard", href: "/dashboard" },
-  { label: "My bookings", href: "/dashboard/bookings" },
+  { label: "My bookings", href: "/dashboard/my-bookings" },
   { label: "Profile settings", href: "/dashboard/profile" },
 ];
 
@@ -76,7 +76,6 @@ export const Footer = () => {
   return (
     <footer className="mt-20 border-t border-border bg-muted/40 dark:bg-muted/20">
       <div className="mx-auto max-w-[1440px] px-5 pt-16 pb-8 sm:px-8 lg:px-12">
-        {/* ---------- Top: brand + newsletter ---------- */}
         <div className="grid grid-cols-1 gap-10 border-b border-border pb-12 lg:grid-cols-12 lg:gap-8">
           <div className="flex flex-col gap-5 lg:col-span-5">
             <Logo size="lg" />
@@ -115,7 +114,6 @@ export const Footer = () => {
           </div>
         </div>
 
-        {/* ---------- Link columns ---------- */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-12 sm:grid-cols-3 lg:grid-cols-4">
           <FooterColumn
             heading="StudioSpace"
@@ -133,7 +131,6 @@ export const Footer = () => {
           <FooterColumn heading="Support" links={supportLinks} />
         </div>
 
-        {/* ---------- Legal ---------- */}
         <div className="flex flex-col items-start justify-between gap-4 border-t border-border pt-7 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>
             © <CurrentYear /> StudioSpace. All rights reserved.

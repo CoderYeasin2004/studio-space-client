@@ -13,7 +13,8 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { categoryLabels } from "@/data/categories";
-import type { ListingStatus, Studio } from "@/types/studio";
+import { formatCurrency } from "@/lib/currency";
+import type { TListingStatus, IStudio } from "@/types/studio";
 import { StatusBadge } from "./status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -44,9 +45,9 @@ import { toast } from "@/components/ui/toast";
  * wired for dynamic data). The two mutations below still only touch local
  * state; swap `setItems` for your API calls when the backend lands.
  */
-export const ListingsManager = ({ listings }: { listings: Studio[] }) => {
-  const [items, setItems] = React.useState<Studio[]>(listings);
-  const [deleting, setDeleting] = React.useState<Studio | null>(null);
+export const ListingsManager = ({ listings }: { listings: IStudio[] }) => {
+  const [items, setItems] = React.useState<IStudio[]>(listings);
+  const [deleting, setDeleting] = React.useState<IStudio | null>(null);
   const router = useRouter();
 
 const confirmDelete = async () => {
@@ -58,11 +59,26 @@ const confirmDelete = async () => {
     return;
   }
 
+  const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+  const token = await getTokenFromClient();
+  if (!token) {
+    toast.add({
+      type: "error",
+      title: "Authentication required",
+      description: "Please log in to delete your listing.",
+    });
+    return;
+  }
+
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(deleting.id)}`,
       {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
       },
     );
 
@@ -97,8 +113,8 @@ toast.add({
     setDeleting(null);
   }
 };
-  const togglePause = (studio: Studio) => {
-    const next: ListingStatus = studio.status === "live" ? "paused" : "live";
+  const togglePause = (studio: IStudio) => {
+    const next: TListingStatus = studio.status === "live" ? "paused" : "live";
     setItems((prev) =>
       prev.map((s) => (s.id === studio.id ? { ...s, status: next } : s)),
     );
@@ -120,7 +136,7 @@ toast.add({
         description="Nothing to show here yet. Create your first listing and it will appear here with its status and bookings."
         action={
           <Button
-            render={<Link href="/dashboard/listings/new" />}
+            render={<Link href="/dashboard/my-listings/new-studios" />}
             className="rounded-full px-6"
           >
             Create a listing
@@ -143,7 +159,6 @@ toast.add({
             key={studio._id ?? studio.id ?? studio.slug}
             className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-primary/30 sm:flex-row sm:items-center"
           >
-            {/* Thumbnail */}
             <Link
               href={`/studios/${studio.slug}`}
               className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:aspect-video sm:w-40"
@@ -165,7 +180,6 @@ toast.add({
   </div>
 )}     </Link>
 
-            {/* Body */}
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2.5">
                 <Link
@@ -192,15 +206,14 @@ toast.add({
                   {bookingCount} {bookingCount === 1 ? "booking" : "bookings"}
                 </span>
                 <span className="font-medium text-foreground">
-                  £{studio.hourlyPrice}/hr
+                  {formatCurrency(studio.hourlyPrice)}/hr
                 </span>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-1.5 self-end sm:self-auto">
               <Button
-                render={<Link href={`/dashboard/listings/${studio.id}/edit`} />}
+                render={<Link href={`/dashboard/my-listings/${studio.id}/edit`} />}
                 variant="outline"
                 size="sm"
                 className="rounded-full"
@@ -253,7 +266,6 @@ toast.add({
         );
       })}
 
-      {/* ---------- Delete confirmation ---------- */}
       <AlertDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}

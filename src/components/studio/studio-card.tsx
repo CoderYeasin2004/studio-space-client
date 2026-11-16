@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { MapPinIcon, StarIcon, UsersIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRightIcon, MapPinIcon, StarIcon, UsersIcon } from "lucide-react";
 import { cn } from "cn";
-import type { Studio } from "@/types/studio";
+import type { IStudio } from "@/types/studio";
 import { categoryLabels } from "@/data/categories";
 import { img } from "@/lib/images";
+import { formatCurrency } from "@/lib/currency";
 import { FavoriteButton } from "./favorite-button";
 import { Badge } from "@/components/ui/badge";
 
@@ -34,7 +38,7 @@ const Rating = ({
 };
 
 interface StudioCardProps {
-  studio: Studio;
+  studio: IStudio;
   variant?: "standard" | "editorial" | "compact";
   /** Forces a specific aspect ratio on the media. */
   ratio?: "video" | "square" | "portrait" | "wide";
@@ -42,8 +46,8 @@ interface StudioCardProps {
   className?: string;
   /** Availability status for the selected date (Explore Studios only). */
   availability?: "available" | "partially-available" | "fully-booked";
-  /** Click handler for the rating — navigates to studio reviews page. */
-  onReviewClick?: () => void;
+  /** URL for the rating — navigates to the studio reviews page. */
+  reviewHref?: string;
 }
 
 /**
@@ -57,9 +61,18 @@ export const StudioCard = ({
   priority = false,
   className,
   availability,
-  onReviewClick,
+  reviewHref,
 }: StudioCardProps) => {
   const href = `/studios/${studio.slug}`;
+  const router = useRouter();
+
+  /** Navigates to the reviews page without triggering the card link. */
+  const handleReviewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (reviewHref) {
+      router.push(reviewHref);
+    }
+  };
 
   const ratios = {
     video: "aspect-[4/3]",
@@ -70,8 +83,7 @@ export const StudioCard = ({
 
   if (variant === "compact") {
     return (
-      <Link
-        href={href}
+      <div
         className={cn(
           "group flex items-center gap-4 rounded-xl border border-border bg-card p-2.5 pr-4 outline-none transition-colors hover:border-primary/30 focus-visible:ring-3 focus-visible:ring-ring/50",
           className,
@@ -93,18 +105,23 @@ export const StudioCard = ({
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-sm font-semibold">£{studio.hourlyPrice}</p>
+          <p className="text-sm font-semibold">{formatCurrency(studio.hourlyPrice)}</p>
           <p className="text-xs text-muted-foreground">per hour</p>
         </div>
+        <Link
+          href={href}
+          className="ml-4 shrink-0 h-8 px-2.5 text-xs font-medium rounded-md border border-border bg-background hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer flex items-center justify-center gap-1"
+        >
+          View Details <ArrowRightIcon className="size-3" />
+        </Link>
         <FavoriteButton studioId={studio.id ?? studio._id ?? ""} studioName={studio.name} size="sm" />
-      </Link>
+      </div>
     );
   }
 
   if (variant === "editorial") {
     return (
-      <Link
-        href={href}
+      <div
         className={cn(
           "group relative block overflow-hidden rounded-xl bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
           ratios[ratio],
@@ -140,14 +157,14 @@ export const StudioCard = ({
               {studio.location}
             </span>
             <span className="ml-auto font-medium text-white">
-              £{studio.hourlyPrice}
+              {formatCurrency(studio.hourlyPrice)}
               <span className="font-normal text-white/60">/hr</span>
             </span>
             <div
-              onClick={onReviewClick}
+              onClick={handleReviewClick}
               className={cn(
                 "cursor-pointer group-hover:text-primary",
-                onReviewClick && "hover:underline",
+                reviewHref && "hover:underline",
               )}
             >
               <Rating
@@ -157,14 +174,19 @@ export const StudioCard = ({
               />
             </div>
           </div>
+          <Link
+            href={href}
+            className="mt-4 w-full shrink-0 h-8 px-3 py-1 text-xs font-medium rounded-md border border-white/30 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer flex items-center justify-center gap-1"
+          >
+            View Details <ArrowRightIcon className="size-3" />
+          </Link>
         </div>
-      </Link>
+      </div>
     );
   }
 
   return (
-    <Link
-      href={href}
+    <div
       className={cn(
         "group flex flex-col outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         className,
@@ -193,7 +215,7 @@ export const StudioCard = ({
           <FavoriteButton studioId={studio.id ?? studio._id ?? ""} studioName={studio.name} />
         </div>
         <div className="absolute right-3 bottom-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-          £{studio.hourlyPrice}/hr
+          {formatCurrency(studio.hourlyPrice)}/hr
         </div>
       </div>
 
@@ -203,10 +225,10 @@ export const StudioCard = ({
             {studio.name}
           </h3>
           <div
-            onClick={onReviewClick}
+            onClick={handleReviewClick}
             className={cn(
               "cursor-pointer group-hover:text-primary",
-              onReviewClick && "hover:underline",
+              reviewHref && "hover:underline",
             )}
           >
             <Rating
@@ -260,7 +282,13 @@ export const StudioCard = ({
           <span aria-hidden className="h-1 w-1 rounded-full bg-border" />
           <span>{studio.size} m²</span>
         </p>
+        <Link
+          href={href}
+          className="mt-3 w-full h-8 px-3 py-1 text-xs font-medium rounded-md border border-border bg-background hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer flex items-center justify-center gap-1"
+        >
+          View Details <ArrowRightIcon className="size-3" />
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 };

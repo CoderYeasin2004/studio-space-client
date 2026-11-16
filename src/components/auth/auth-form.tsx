@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, ImageIcon, LockIcon, MailIcon, UserIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ interface FieldState {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/;
 
 /**
  * Shared login / registration form. Everything is local state — submit only
@@ -32,6 +33,7 @@ export const AuthForm = ({ mode }: { mode: Mode }) => {
 
   const [name, setName] = React.useState<FieldState>({ value: "" });
   const [email, setEmail] = React.useState<FieldState>({ value: "" });
+  const [photoUrl, setPhotoUrl] = React.useState<FieldState>({ value: "" });
   const [password, setPassword] = React.useState<FieldState>({ value: "" });
   const [showPassword, setShowPassword] = React.useState(false);
   const [remember, setRemember] = React.useState(true);
@@ -54,10 +56,10 @@ export const AuthForm = ({ mode }: { mode: Mode }) => {
       ok = false;
     }
 
-    if (password.value.length < 8) {
+    if (!PASSWORD_RE.test(password.value)) {
       setPassword((f) => ({
         ...f,
-        error: "Use at least 8 characters.",
+        error: "Use at least 6 characters with one uppercase and one lowercase letter.",
       }));
       ok = false;
     }
@@ -110,7 +112,6 @@ const handleGoogleLogin = async () => {
 
  try {
   if (isLogin) {
-    // Login API
     const { error } = await authClient.signIn.email({
       email: email.value.trim(),
       password: password.value,
@@ -125,11 +126,11 @@ const handleGoogleLogin = async () => {
       return;
     }
   } else {
-    // Signup API
     const { error } = await authClient.signUp.email({
       name: name.value.trim(),
       email: email.value.trim(),
       password: password.value,
+      image: photoUrl.value.trim() || undefined,
     });
 
     if (error) {
@@ -142,7 +143,6 @@ const handleGoogleLogin = async () => {
     }
   }
 
-  // Both Login and Signup success
   toast.add({
     type: "success",
     title: isLogin ? "Welcome back!" : "Account created",
@@ -151,7 +151,7 @@ const handleGoogleLogin = async () => {
       : "Your account is ready.",
   });
 
-  router.push("/dashboard");
+  router.push(isLogin ? "/dashboard" : "/login");
 
 } catch (error) {
   toast.add({
@@ -166,7 +166,6 @@ const handleGoogleLogin = async () => {
     
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-      {/* ---------- Name (register only) ---------- */}
       {!isLogin && (
         <div className="flex flex-col gap-2">
           <Label htmlFor="auth-name">Full name</Label>
@@ -194,7 +193,33 @@ const handleGoogleLogin = async () => {
         </div>
       )}
 
-      {/* ---------- Email ---------- */}
+      {!isLogin && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="auth-photo-url">Photo URL</Label>
+          <div className="relative">
+            <ImageIcon
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              id="auth-photo-url"
+              type="url"
+              autoComplete="url"
+              value={photoUrl.value}
+              onChange={(e) =>
+                setPhotoUrl({ value: e.target.value, error: undefined })
+              }
+              placeholder="https://example.com/photo.jpg"
+              aria-invalid={photoUrl.error ? true : undefined}
+              className="h-11 rounded-lg bg-card pl-9"
+            />
+          </div>
+          {photoUrl.error && (
+            <p className="text-sm text-destructive">{photoUrl.error}</p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <Label htmlFor="auth-email">Email address</Label>
         <div className="relative">
@@ -216,7 +241,6 @@ const handleGoogleLogin = async () => {
         {email.error && <p className="text-sm text-destructive">{email.error}</p>}
       </div>
 
-      {/* ---------- Password ---------- */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="auth-password">Password</Label>
@@ -230,7 +254,7 @@ const handleGoogleLogin = async () => {
                   description: "No emails are sent from this frontend build.",
                 })
               }
-              className="text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="text-xs text-muted-foreground cursor-pointer outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               Forgot password?
             </button>
@@ -257,7 +281,7 @@ const handleGoogleLogin = async () => {
             type="button"
             aria-label={showPassword ? "Hide password" : "Show password"}
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute top-1/2 right-2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="absolute top-1/2 right-2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground cursor-pointer outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             {showPassword ? (
               <EyeOffIcon className="size-4" />
@@ -271,12 +295,11 @@ const handleGoogleLogin = async () => {
         )}
         {!isLogin && (
           <p className="text-xs text-muted-foreground">
-            At least 8 characters.
+            At least 6 characters, one uppercase and one lowercase letter.
           </p>
         )}
       </div>
 
-      {/* ---------- Options ---------- */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {isLogin ? (
           <label
@@ -311,7 +334,6 @@ const handleGoogleLogin = async () => {
         )}
       </div>
 
-      {/* ---------- Submit ---------- */}
       <Button
         type="submit"
         size="lg"

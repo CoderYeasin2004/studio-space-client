@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { img } from "@/lib/images";
 
 const promises = [
   "List free — you only pay when you earn",
@@ -21,7 +20,6 @@ export const HostPromotion = () => {
           light value in dark mode and would break the white type above. */}
       <div className="relative mx-auto max-w-[1440px] overflow-hidden rounded-2xl bg-[#171326]">
         <div className="relative grid grid-cols-1 lg:grid-cols-2">
-          {/* ---------- Copy ---------- */}
           <div className="relative z-10 flex flex-col justify-center gap-8 px-6 py-14 sm:px-10 lg:py-24 xl:px-16">
             <span className="eyebrow text-brand-lavender">For studio owners</span>
 
@@ -55,7 +53,7 @@ export const HostPromotion = () => {
 
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
               <Button
-                render={<Link href="/dashboard/listings/new" />}
+                render={<Link href="/dashboard/my-listings/new-studios" />}
                 size="lg"
                 className="h-12 rounded-full bg-brand-violet px-7 text-[15px] text-white transition-all duration-300 hover:bg-brand-purple hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-brand-violet focus-visible:outline-none group"
               >
@@ -73,10 +71,9 @@ export const HostPromotion = () => {
             </div>
           </div>
 
-          {/* ---------- Photography ---------- */}
           <div className="relative min-h-[18rem] lg:min-h-[34rem] overflow-hidden group">
             <Image
-              src={img("1497215728101-856f4ea42174", "gallery")}
+              src="/images/about/host-promotion.jpg"
               alt="A bright, well-kept studio space ready for its next booking"
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"

@@ -1,39 +1,42 @@
+
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon, StarIcon } from "lucide-react";
 import { img } from "@/lib/images";
 import { fetchStudioReviews } from "@/lib/api/studios";
-import type { Review } from "@/lib/api/studios";
-import type { Studio } from "@/types/studio";
+import type { IApiReview } from "@/types/review";
+import type { IStudio } from "@/types/studio";
+import type { Metadata } from "next";
 
-export const metadata = async ({ params }: { params: Promise<{ slug: string }> }) => {
-  const { slug } = await params;
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
-      { cache: "no-store" },
-    );
-    if (!response.ok) {
-      return { title: "Studio not found — StudioSpace" };
-    }
-    const studio: Studio = await response.json();
-    return {
-      title: `Reviews for ${studio.name} — StudioSpace`,
-      description: `Read reviews for ${studio.name} — ${studio.location}`,
-    };
-  } catch {
-    return { title: "Studio not found — StudioSpace" };
-  }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Studio Reviews — StudioSpace",
+    description: "Read reviews and ratings from StudioSpace customers.",
+  };
+}
 
-const StudioReviewsPage = async ({
+const ReviewsLoading = () => (
+  <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
+    <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+    <div className="mt-8 h-10 w-64 animate-pulse rounded bg-muted" />
+    <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-40 animate-pulse rounded-xl border border-border bg-muted/50"
+        />
+      ))}
+    </div>
+  </div>
+);
+const StudioReviewsContent = async ({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) => {
   const { slug } = await params;
-
   const studioResponse = await fetch(
     `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
     { cache: "no-store" },
@@ -43,23 +46,29 @@ const StudioReviewsPage = async ({
     notFound();
   }
 
-  const studioData: Studio = await studioResponse.json();
+  const studioData: IStudio = await studioResponse.json();
   const studioId = studioData._id ?? studioData.id;
 
   if (!studioId) {
     notFound();
   }
 
-  const reviews: Review[] = await fetchStudioReviews(studioId);
+  const reviews: IApiReview[] = await fetchStudioReviews(studioId);
 
   const sortedReviews = [...reviews].sort((a, b) => {
     if (b.rating !== a.rating) return b.rating - a.rating;
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
+
+    return (
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
   });
 
   const averageRating =
     reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      ? (
+          reviews.reduce((sum, review) => sum + review.rating, 0) /
+          reviews.length
+        ).toFixed(1)
       : "0.0";
 
   return (
@@ -79,10 +88,12 @@ const StudioReviewsPage = async ({
           <h1 className="font-heading text-[clamp(2rem,4vw,3rem)] leading-tight font-semibold tracking-[-0.03em] text-balance">
             Reviews for {studioData.name}
           </h1>
+
           <div className="flex items-center gap-2">
             <span className="font-heading text-2xl font-semibold tabular-nums">
               {averageRating}
             </span>
+
             <div className="flex flex-col">
               <span className="flex">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -96,8 +107,10 @@ const StudioReviewsPage = async ({
                   />
                 ))}
               </span>
+
               <span className="text-xs text-muted-foreground">
-                ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
+                ({reviews.length} review
+                {reviews.length !== 1 ? "s" : ""})
               </span>
             </div>
           </div>
@@ -107,7 +120,8 @@ const StudioReviewsPage = async ({
       {reviews.length === 0 ? (
         <div className="mt-10 flex flex-col items-center justify-center py-12">
           <p className="text-sm text-muted-foreground">
-            No reviews yet for {studioData.name}. Be the first to share your experience!
+            No reviews yet for {studioData.name}. Be the first to share your
+            experience!
           </p>
         </div>
       ) : (
@@ -127,13 +141,18 @@ const StudioReviewsPage = async ({
                     className="object-cover"
                   />
                 </div>
+
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
                     {review.author}
                   </p>
                 </div>
               </figcaption>
-              <span className="flex" aria-label={`${review.rating} out of 5`}>
+
+              <span
+                className="flex"
+                aria-label={`${review.rating} out of 5`}
+              >
                 {Array.from({ length: 5 }).map((_, i) => (
                   <StarIcon
                     key={i}
@@ -145,9 +164,11 @@ const StudioReviewsPage = async ({
                   />
                 ))}
               </span>
+
               <blockquote className="text-sm leading-relaxed text-muted-foreground">
                 {review.text}
               </blockquote>
+
               <p className="mt-auto pt-1 text-xs text-muted-foreground/70">
                 {review.date}
               </p>
@@ -156,6 +177,18 @@ const StudioReviewsPage = async ({
         </div>
       )}
     </div>
+  );
+};
+
+const StudioReviewsPage = ({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) => {
+  return (
+    <Suspense fallback={<ReviewsLoading />}>
+      <StudioReviewsContent params={params} />
+    </Suspense>
   );
 };
 

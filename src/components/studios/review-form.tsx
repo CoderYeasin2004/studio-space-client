@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { StarIcon } from "lucide-react";
-import { submitStudioReview, fetchStudioReviews, checkReviewEligibility, type Review } from "@/lib/api/studios";
+import { submitStudioReview, fetchStudioReviews, checkReviewEligibility } from "@/lib/api/studios";
+import type { IApiReview } from "@/types/review";
 import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,20 +12,27 @@ import { useRouter } from "next/navigation";
 
 interface ReviewFormProps {
   studioId: string;
-  onReviewAdded: () => void;
+  bookingId: string;
+  canReview?: boolean;
 }
-
-export const ReviewForm = ({ studioId, onReviewAdded }: ReviewFormProps) => {
+export const ReviewForm = ({
+  studioId,
+  bookingId,
+  canReview = false,
+}: ReviewFormProps) => {
   const router = useRouter();
   const [author, setAuthor] = React.useState("");
   const [rating, setRating] = React.useState<number | undefined>(undefined);
   const [text, setText] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [submitted, setSubmitted] = React.useState(false);
   const [eligibility, setEligibility] = React.useState<{ canReview: boolean; reason?: string } | null>(null);
 
   React.useEffect(() => {
     const loadEligibility = async () => {
-      const result = await checkReviewEligibility(studioId);
+      const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+      const token = await getTokenFromClient();
+      const result = await checkReviewEligibility(studioId, token ?? undefined);
       setEligibility(result);
     };
     loadEligibility();
@@ -55,23 +63,35 @@ export const ReviewForm = ({ studioId, onReviewAdded }: ReviewFormProps) => {
 
     setSubmitting(true);
 
-    try {
-      const success = await submitStudioReview(studioId, {
-        author,
-        rating: rating!,
-        text,
+    const { getTokenFromClient } = await import("@/lib/getTokenFromClient");
+    const token = await getTokenFromClient();
+    if (!token) {
+      toast.add({
+        type: "error",
+        title: "Authentication required",
+        description: "Please log in to submit a review.",
       });
+      setSubmitting(false);
+      return;
+    }
 
+    try {
+   const success = await submitStudioReview(studioId, {
+  bookingId,
+  author,
+  rating: rating!,
+  text,
+}, token);
       if (success) {
         setAuthor("");
         setRating(undefined);
         setText("");
+        setSubmitted(true);
         toast.add({
           type: "success",
           title: "Review submitted",
           description: "Thank you for your review!",
         });
-        onReviewAdded();
         router.refresh();
       } else {
         toast.add({
@@ -90,6 +110,10 @@ export const ReviewForm = ({ studioId, onReviewAdded }: ReviewFormProps) => {
       setSubmitting(false);
     }
   };
+
+  if (!canReview || submitted) {
+    return null;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">

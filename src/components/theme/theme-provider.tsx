@@ -2,12 +2,12 @@
 
 import * as React from "react";
 
-export type Theme = "light" | "dark";
+export type TTheme = "light" | "dark";
 
 const STORAGE_KEY = "studiospace-theme";
 const listeners = new Set<() => void>();
 
-const readTheme = (): Theme => {
+const readTheme = (): TTheme => {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored === "dark" || stored === "light") return stored;
@@ -19,7 +19,7 @@ const readTheme = (): Theme => {
     : "light";
 };
 
-const applyTheme = (theme: Theme) => {
+const applyTheme = (theme: TTheme) => {
   document.documentElement.classList.toggle("dark", theme === "dark");
 };
 
@@ -55,8 +55,8 @@ const notify = () => {
 };
 
 const ThemeContext = React.createContext<{
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  theme: TTheme;
+  setTheme: (theme: TTheme) => void;
   toggleTheme: () => void;
 }>({
   theme: "light",
@@ -68,7 +68,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const theme = React.useSyncExternalStore(
     subscribe,
     readTheme,
-    () => "light" as Theme,
+    () => "light" as TTheme,
   );
 
   // Keep the DOM class in sync whenever the resolved theme changes.
@@ -76,7 +76,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     applyTheme(theme);
   }, [theme]);
 
-  const setTheme = React.useCallback((next: Theme) => {
+  const setTheme = React.useCallback((next: TTheme) => {
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {

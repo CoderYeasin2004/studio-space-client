@@ -16,7 +16,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   MenuIcon,
   ChevronDownIcon,
@@ -30,6 +29,8 @@ import {
 } from "lucide-react";
 
 import { useSession, signOut } from "@/lib/auth-client";
+import { Skeleton, SkeletonAvatar } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useFavorites } from "@/hooks/use-favorites";
 import { toast } from "@/components/ui/toast";
 
@@ -58,25 +59,31 @@ export const Navbar = () => {
 
   const { data: session, isPending } = useSession();
   const user = session?.user;
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
   const handleLogout = async () => {
-  try {
-    await signOut();
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await signOut();
 
-    toast.add({
-      type: "success",
-      title: "Logged out successfully",
-    });
+      toast.add({
+        type: "success",
+        title: "Logged out successfully",
+      });
 
-    router.push("/login");
-    router.refresh();
-  } catch {
-    toast.add({
-      type: "warning",
-      title: "Logout failed",
-      description: "Please try again.",
-    });
-  }
-};
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      toast.add({
+        type: "warning",
+        title: "Logout failed",
+        description: "Please try again.",
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -109,7 +116,6 @@ export const Navbar = () => {
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:h-[72px] lg:px-12">
         <Logo />
 
-        {/* ---------- Desktop links ---------- */}
         <nav aria-label="Primary" className="hidden lg:block">
           <ul className="flex items-center gap-1">
             {links.map((link) => (
@@ -137,7 +143,6 @@ export const Navbar = () => {
           </ul>
         </nav>
 
-        {/* ---------- Actions ---------- */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
 
@@ -156,29 +161,17 @@ export const Navbar = () => {
             )}
           </Button>
 
-          {user ? (
+          {isPending ? (
+            <div className="hidden items-center gap-2 sm:flex">
+              <SkeletonAvatar className="h-9 w-9" />
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </div>
+          ) : user ? (
     <div className="hidden items-center gap-2 sm:flex">
       <DropdownMenu>
         <div className="flex items-center gap-1">
-          {/* Avatar */}
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-border">
-            {user.image ? (
-              <Image
-                src={user.image}
-                alt={user.name || "Profile"}
-                width={36}
-                height={36}
-                unoptimized
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-sm font-semibold">
-                {user.name?.charAt(0).toUpperCase() || "U"}
-              </span>
-            )}
-          </div>
+          <UserAvatar image={user.image} name={user.name} className="h-9 w-9" />
 
-          {/* Chevron */}
           <DropdownMenuTrigger
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
             aria-label="Open profile menu"
@@ -194,7 +187,7 @@ export const Navbar = () => {
   Dashboard
 </DropdownMenuItem>
   <DropdownMenuItem
-    onClick={() => router.push("/dashboard/listings")}
+    onClick={() => router.push("/dashboard/my-listings")}
   >
     
     <LayoutGridIcon className="mr-2 h-4 w-4" />
@@ -202,7 +195,7 @@ export const Navbar = () => {
   </DropdownMenuItem>
 
   <DropdownMenuItem
-    onClick={() => router.push("/dashboard/bookings")}
+    onClick={() => router.push("/dashboard/my-bookings")}
   >
     <CalendarDaysIcon className="mr-2 h-4 w-4" />
     My Bookings
@@ -218,7 +211,7 @@ export const Navbar = () => {
   <DropdownMenuSeparator />
 
   <DropdownMenuItem
-    onClick={() => router.push("/dashboard/listings/new")}
+    onClick={() => router.push("/dashboard/my-listings/new-studios")}
   >
     <Plus className="mr-2 h-4 w-4" />
     Create New Studio
@@ -229,6 +222,7 @@ export const Navbar = () => {
   <DropdownMenuItem
     variant="destructive"
     onClick={handleLogout}
+    disabled={isLoggingOut}
   >
     <LogOutIcon className="mr-2 h-4 w-4" />
     Logout
@@ -255,7 +249,6 @@ export const Navbar = () => {
   </>
 )}
 
-          {/* ---------- Mobile trigger ---------- */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
               render={
@@ -297,10 +290,25 @@ export const Navbar = () => {
               </nav>
 
              <div className="mt-auto flex flex-col gap-2 border-t border-border p-5">
-  {user ? (
+   {isPending ? (
+     <>
+       <Skeleton className="h-11 w-full rounded-lg" />
+       <Skeleton className="h-11 w-full rounded-lg" />
+     </>
+   ) : user ? (
     <>
       <Button
-        render={<Link href="/dashboard/listings" />}
+        render={<Link href="/dashboard" />}
+        variant="outline"
+        className="h-11 w-full"
+        onClick={() => setOpen(false)}
+      >
+        <LayoutDashboardIcon className="mr-2 h-4 w-4" />
+        Dashboard
+      </Button>
+
+      <Button
+        render={<Link href="/dashboard/my-listings" />}
         variant="outline"
         className="h-11 w-full"
         onClick={() => setOpen(false)}
@@ -309,7 +317,7 @@ export const Navbar = () => {
       </Button>
 
       <Button
-        render={<Link href="/dashboard/bookings" />}
+        render={<Link href="/dashboard/my-bookings" />}
         variant="outline"
         className="h-11 w-full"
         onClick={() => setOpen(false)}
@@ -329,6 +337,7 @@ export const Navbar = () => {
       <Button
         variant="destructive"
         className="h-11 w-full"
+        disabled={isLoggingOut}
         onClick={() => {
           setOpen(false);
           handleLogout();

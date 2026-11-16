@@ -39,7 +39,6 @@ export const ProfileForm = () => {
 if (isPending) {
   return (
     <div className="flex flex-col gap-6 animate-pulse">
-      {/* Profile Skeleton */}
       <Card className="gap-5">
         <CardHeader className="gap-3">
           <div className="h-6 w-24 rounded-md bg-muted" />
@@ -47,7 +46,6 @@ if (isPending) {
         </CardHeader>
 
         <CardContent className="flex flex-col gap-6">
-          {/* Avatar Skeleton */}
           <div className="flex items-center gap-4">
             <div className="size-20 shrink-0 rounded-full bg-muted" />
 
@@ -59,24 +57,22 @@ if (isPending) {
 
           <Separator />
 
-          {/* Form Fields Skeleton */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {Array.from({ length: 2 }).map((_, index) => (
               <div key={index} className="flex flex-col gap-2">
-                <div className="h-4 w-24 rounded bg-muted" />
+                <div className="h- w-24 rounded bg-muted" />
                 <div className="h-10 w-full rounded-lg bg-muted" />
               </div>
             ))}
 
             <div className="flex flex-col gap-2 sm:col-span-2">
               <div className="h-4 w-36 rounded bg-muted" />
-              <div className="h-10 w-full rounded-lg bg-muted" />
+              <div className="h-10 w-full rounded4-lg bg-muted" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Save Buttons Skeleton */}
       <div className="flex justify-end gap-3">
         <div className="h-11 w-24 rounded-full bg-muted" />
         <div className="h-11 w-36 rounded-full bg-muted" />
@@ -192,7 +188,6 @@ const ProfileEditor = ({
         </CardHeader>
 
         <CardContent className="flex flex-col gap-6">
-          {/* Profile Photo */}
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
               {imageUrl && isValidImageUrl(imageUrl) ? (
@@ -229,7 +224,6 @@ const ProfileEditor = ({
             onSubmit={handleSave}
             className="grid grid-cols-1 gap-5 sm:grid-cols-2"
           >
-            {/* Full Name */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="profile-name">Full name</Label>
 
@@ -245,7 +239,6 @@ const ProfileEditor = ({
               />
             </div>
 
-            {/* Email - Read Only */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="profile-email">Email address</Label>
 
@@ -262,7 +255,6 @@ const ProfileEditor = ({
               </p>
             </div>
 
-            {/* Image URL */}
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Label htmlFor="profile-image">Profile image URL</Label>
 
@@ -287,7 +279,6 @@ const ProfileEditor = ({
         </CardContent>
       </Card>
 
-      {/* Save Actions */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           type="button"

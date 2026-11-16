@@ -1,288 +1,198 @@
+"use client";
+
+import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRightIcon,
-  Building2Icon,
-  Circle,
-  MapPinIcon,
-  StarIcon,
-  VerifiedIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+import "swiper/css";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { cn } from "cn";
-import { img } from "@/lib/images";
 import { ApertureMark } from "@/components/brand/logo";
-import type { Studio } from "@/types/studio";
-
-interface PlatformStats {
-  totalStudios: number;
-  totalCities: number;
-  averageRating: number;
-}
-
-async function fetchStats(): Promise<PlatformStats | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
-  if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
-    return null;
-  }
-
-  try {
-    const response = await fetch(`${baseUrl}/stats`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      console.error(`Stats request failed (${response.status})`);
-      return null;
-    }
-
-    const data: unknown = await response.json();
-
-    if (
-      !data ||
-      typeof data !== "object" ||
-      !("totalStudios" in data) ||
-      !("totalCities" in data) ||
-      !("averageRating" in data)
-    ) {
-      console.error("Stats response was malformed");
-      return null;
-    }
-
-    return data as PlatformStats;
-  } catch (error) {
-    console.error("Failed to load stats:", error);
-    return null;
-  }
-}
-
-async function fetchHeroStudio(): Promise<Studio | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
-  if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
-    return null;
-  }
-
-  try {
-    const response = await fetch(`${baseUrl}/studios/hero`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      console.error(`Hero studio request failed (${response.status})`);
-      return null;
-    }
-
-    const data: unknown = await response.json();
-
-    if (!data || typeof data !== "object") {
-      return null;
-    }
-
-    const studio = data as Studio;
-    if (!studio.slug || !studio.name || !studio.location || !studio.images?.[0]) {
-      return null;
-    }
-
-    return studio;
-  } catch (error) {
-    console.error("Failed to load hero studio:", error);
-    return null;
-  }
-}
+import type { Swiper as SwiperType } from "swiper";
 
 /**
- * Photography-first hero: oversized editorial headline on a narrow left
- * column, cinematic imagery bleeding off the right edge, plus a floating
- * studio card for depth. Deliberately not a centred hero.
+ * Homepage hero slider.
  *
- * Platform statistics and the floating studio card are fetched live from
- * the backend. Missing data is omitted rather than fabricated.
+ * Three full-bleed slides, each pairing a high-quality studio background
+ * image with a dark gradient overlay, a category badge, a heading, a short
+ * description and two CTAs. Powered by Swiper.js with autoplay, navigation
+ * arrows, clickable pagination and touch/swipe support.
  */
-export const Hero = async () => {
-  const [stats, studio] = await Promise.all([
-    fetchStats(),
-    fetchHeroStudio(),
-  ]);
+const SLIDES = [
+  {
+    image: "/images/hero/photography.jpg",
+    category: "Photography & Creative Spaces",
+    heading: "Find the Perfect Space for Your Creative Vision",
+    description:
+      "Discover professional photography studios equipped to bring your ideas to life.",
+    alt: "A photography studio lit with softboxes and a seamless backdrop",
+  },
+  {
+    image: "/images/hero/podcast.jpg",
+    category: "Podcast & Music Production",
+    heading: "Create Something Worth Listening To",
+    description:
+      "Explore professional podcast lounges and recording studios for your next project.",
+    alt: "A podcast recording studio with microphones and acoustic treatment",
+  },
+  {
+    image: "/images/hero/film.jpg",
+    category: "Film & Production",
+    heading: "Your Next Great Production Starts Here",
+    description:
+      "Book cinematic spaces and professional sound stages for your creative productions.",
+    alt: "A film production stage with lighting rigs and camera equipment",
+  },
+] as const;
+
+/**
+ * Slide height — tall enough to feel immersive, short enough to stay out of
+ * the way of the rest of the homepage.
+ */
+const SLIDE_HEIGHT = "h-[58vh] lg:h-[64vh] max-h-[640px] lg:max-h-[720px]";
+
+export const Hero = () => {
+  // Stores the Swiper *instance* (not the DOM element). In swiper/react v14+,
+  // `ref` on <Swiper> points to the swiper HTMLElement, which has no
+  // slideNext/slidePrev/slideTo methods. The actual Swiper instance is only
+  // exposed via the `onSwiper` callback, so we capture it there.
+ const swiperRef = useRef<SwiperType | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+ const handleSwiper = useCallback((swiper: SwiperType) => {
+  swiperRef.current = swiper;
+}, []);
+
+const handleSlideChange = useCallback((swiper: SwiperType) => {
+  setActiveIndex(swiper.realIndex);
+}, []);
+
+  const handlePrev = useCallback(() => {
+    swiperRef.current?.slidePrev();
+  }, []);
+
+  const handleNext = useCallback(() => {
+    swiperRef.current?.slideNext();
+  }, []);
+
+  const handleSlideClick = useCallback((index: number) => {
+    swiperRef.current?.slideTo(index);
+  }, []);
 
   return (
-    <section className="relative overflow-hidden pt-10 pb-16 sm:pt-14 lg:pt-16 lg:pb-24">
-      {/* Soft brand wash — kept subtle so purple stays an accent */}
+    <section className="relative overflow-hidden pt-12 pb-16 lg:pt-16 lg:pb-20">
+      <Swiper
+        onSwiper={handleSwiper}
+        modules={[Autoplay]}
+        slidesPerView={1}
+        spaceBetween={0}
+        speed={700}
+        grabCursor
+        autoplay={{
+          delay: 5000,
+          disableOnInteraction: true,
+          pauseOnMouseEnter: true,
+        }}
+        onSlideChange={handleSlideChange}
+        className={`relative ${SLIDE_HEIGHT}`}
+      >
+        {SLIDES.map((slide, index) => (
+          <SwiperSlide
+            key={slide.category}
+            aria-label={`Slide ${index + 1} of ${SLIDES.length}: ${slide.category}`}
+          >
+            <div className="relative h-full">
+              <Image
+                src={slide.image}
+                alt={slide.alt}
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                className="object-cover zoom-media"
+              />
+
+              {/* Dark gradient overlay so white text stays readable */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/60" />
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/25 to-transparent/60"
+              />
+
+              <div className="grain" />
+
+              <div className="relative z-10 h-full flex items-center px-5 sm:px-8 lg:pl-12 lg:pr-24">
+                <div className="max-w-[560px]">
+                  <div
+                    className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm text-white text-xs font-semibold tracking-wider uppercase"
+                  >
+                    <ApertureMark className="size-3.5 text-primary" />
+                    {slide.category}
+                  </div>
+
+                  <h1 className="mt-4 font-heading text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.05] font-semibold tracking-tight text-white sm:mt-6">
+                    {slide.heading}
+                  </h1>
+
+                  <p className="mt-4 max-w-[480px] text-base leading-relaxed text-white/90 sm:text-lg sm:mt-5">
+                    {slide.description}
+                  </p>
+
+                  <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <Button
+                      render={<Link href="/studios" />}
+                      size="lg"
+                      className="h-11 rounded-full px-7 text-[15px] font-medium"
+                    >
+                      Explore Studios
+                      <ArrowRightIcon className="ml-1.5 size-4" />
+                    </Button>
+                    <Button
+                      render={<Link href="/dashboard/my-listings/new-studios" />}
+                      variant="outline"
+                      size="lg"
+                      className="h-11 rounded-full px-7 text-[15px] font-medium bg-transparent text-white border-white/40 hover:bg-white/20 hover:text-white"
+                    >
+                      Host Your Space
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
       <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 -left-40 size-[480px] rounded-full bg-brand-lavender/25 blur-[120px] dark:bg-brand-violet/20"
-      />
+        className="absolute inset-0 flex items-center justify-between px-4 sm:px-6 lg:px-12 z-20 pointer-events-none"
+      >
+        <button
+          onClick={handlePrev}
+          className="z-10 pointer-events-auto self-center h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 transition-colors duration-200 sm:h-11 sm:w-11"
+          aria-label="Previous slide"
+          type="button"
+        >
+          <ArrowLeftIcon className="size-5 sm:size-6" />
+        </button>
+        <button
+          onClick={handleNext}
+          className="z-10 pointer-events-auto self-center h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 transition-colors duration-200 sm:h-11 sm:w-11"
+          aria-label="Next slide"
+          type="button"
+        >
+          <ArrowRightIcon className="size-5 sm:size-6" />
+        </button>
+      </div>
 
-      <div className="relative mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-12 px-5 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:px-12">
-        {/* ---------- Copy column ---------- */}
-        <div className="flex flex-col gap-7 lg:col-span-5">
-          <span className="eyebrow inline-flex w-fit items-center gap-2.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-muted-foreground">
-            <ApertureMark className="size-3.5 text-primary" />
-            Find Your Space. Create Your Vision.
-          </span>
-
-          <h1 className="font-heading text-[clamp(2.75rem,7vw,4.75rem)] leading-[0.95] font-semibold tracking-[-0.045em] text-balance">
-            Space to Create Something{" "}
-            <span className="text-primary">Extraordinary.</span>
-          </h1>
-
-          <p className="max-w-md text-base leading-relaxed text-muted-foreground text-balance sm:text-lg">
-            Discover inspiring creative spaces designed to bring your next big
-            idea to life.
-          </p>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              render={<Link href="/studios" />}
-              size="lg"
-              className="h-12 rounded-full px-7 text-[15px] font-medium"
-            >
-              Explore Spaces
-              <ArrowRightIcon className="ml-1 size-4" />
-            </Button>
-            <Button
-              render={<Link href="/dashboard/listings/new" />}
-              variant="outline"
-              size="lg"
-              className="h-12 rounded-full px-7 text-[15px] font-medium"
-            >
-              List Your Studio
-            </Button>
-          </div>
-
-          {/* Stats — three compact cards */}
-          {stats && (
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <Card
-                className={cn(
-                  "rounded-xl border border-border/50 bg-card p-3 transition-all duration-300",
-                  "hover:border-primary/50 hover:shadow-sm hover:-translate-y-0.5",
-                )}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-start w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                    <Building2Icon className="size-[13px]" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Circle className="size-[11px] shrink-0 text-purple-500" />
-                    <span className="font-semibold text-base text-muted-foreground">
-                      {stats.totalStudios}
-                    </span>
-                    <span className="text-sm text-muted-foreground font-medium">
-                      Studios
-                    </span>
-                  </div>
-                </div>
-              </Card>
-              <Card
-                className={cn(
-                  "rounded-xl border border-border/50 bg-card p-3 transition-all duration-300",
-                  "hover:border-primary/50 hover:shadow-sm hover:-translate-y-0.5",
-                )}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-start w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                    <MapPinIcon className="size-[13px]" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Circle className="size-[11px] shrink-0 text-blue-500" />
-                    <span className="font-semibold text-base text-muted-foreground">
-                      {stats.totalCities}
-                    </span>
-                    <span className="text-sm text-muted-foreground font-medium">
-                      Cities
-                    </span>
-                  </div>
-                </div>
-              </Card>
-              <Card
-                className={cn(
-                  "rounded-xl border border-border/50 bg-card p-3 transition-all duration-300",
-                  "hover:border-primary/50 hover:shadow-sm hover:-translate-y-0.5",
-                )}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-start w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                    <StarIcon className="size-[13px]" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Circle className="size-[11px] shrink-0 text-amber-500" />
-                    <span className="font-semibold text-base text-muted-foreground">
-                      {stats.averageRating}
-                    </span>
-                    <span className="text-sm text-muted-foreground font-medium">
-                      Avg. rating
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {/* ---------- Imagery column ---------- */}
-        <div className="relative lg:col-span-7">
-          {/* Main cinematic frame — bleeds toward the right edge */}
-          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted sm:aspect-[5/4] lg:aspect-[4/3.4] lg:-mr-12 lg:rounded-l-2xl lg:rounded-r-none xl:-mr-20">
-            <Image
-              src={img("1607462109225-6b64ae2dd3cb", "hero")}
-              alt="A photography studio lit with softboxes and a seamless backdrop"
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 58vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-black/10" />
-
-            {/* Floating detail — verified badge */}
-            <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-md sm:top-6 sm:left-6">
-              <VerifiedIcon className="size-3.5 text-primary" />
-              Every space verified
-            </div>
-          </div>
-
-          {/* Floating studio card — overlaps the main frame */}
-          {studio && (
-            <Link
-              href={`/studios/${studio.slug}`}
-              className="group absolute -bottom-6 left-4 flex w-[min(20rem,calc(100%-2rem))] items-center gap-3 rounded-xl border border-border bg-card/95 p-2.5 pr-4 shadow-xl backdrop-blur-sm outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:ring-3 focus-visible:ring-ring/50 sm:left-8 lg:-bottom-8 lg:left-0"
-            >
-              <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                <Image
-                  src={img(studio.images[0], "thumb")}
-                  alt={studio.name}
-                  fill
-                  sizes="56px"
-                  className="object-cover"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">
-                  {studio.name}
-                </p>
-                <p className="inline-flex items-center gap-1 truncate text-xs text-muted-foreground">
-                  <MapPinIcon className="size-3 shrink-0" />
-                  {studio.location}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-0.5">
-                {typeof studio.rating === "number" && (
-                  <span className="inline-flex items-center gap-0.5 text-xs font-medium">
-                    <StarIcon className="size-3 fill-current text-amber-500" />
-                    {studio.rating}
-                  </span>
-                )}
-                {typeof studio.hourlyPrice === "number" && (
-                  <span className="text-xs text-muted-foreground">
-                    £{studio.hourlyPrice}/hr
-                  </span>
-                )}
-              </div>
-            </Link>
-          )}
-        </div>
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:bottom-8 lg:bottom-10">
+        {SLIDES.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => handleSlideClick(index)}
+            className={`h-1.5 w-1.5 rounded-full bg-white/50 transition-all duration-300 ease-in-out ${activeIndex === index ? "w-6 bg-white" : ""} focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2`}
+            aria-label={`Go to slide ${index + 1}`}
+            type="button"
+          />
+        ))}
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import * as React from "react"
 import { cn } from "cn"
 import * as RechartsPrimitive from "recharts"
 import type { TooltipValueType } from "recharts"
+import type { TChartConfig } from "@/types/chart"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -11,19 +12,8 @@ const THEMES = { light: "", dark: ".dark" } as const
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
 type TooltipNameType = number | string
 
-export type ChartConfig = Record<
-  string,
-  {
-    label?: React.ReactNode
-    icon?: React.ComponentType
-  } & (
-    | { color?: string; theme?: never }
-    | { color?: never; theme: Record<keyof typeof THEMES, string> }
-  )
->
-
 type ChartContextProps = {
-  config: ChartConfig
+  config: TChartConfig
 }
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
@@ -46,7 +36,7 @@ const ChartContainer = ({
   initialDimension = INITIAL_DIMENSION,
   ...props
 }: React.ComponentProps<"div"> & {
-  config: ChartConfig
+  config: TChartConfig
   children: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["children"]
@@ -80,7 +70,7 @@ const ChartContainer = ({
   )
 };
 
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+const ChartStyle = ({ id, config }: { id: string; config: TChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme ?? config.color
   )
@@ -327,7 +317,7 @@ const ChartLegendContent = ({
 };
 
 const getPayloadConfigFromPayload = (
-  config: ChartConfig,
+  config: TChartConfig,
   payload: unknown,
   key: string
 ) => {

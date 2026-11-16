@@ -22,7 +22,6 @@ const NotFound = () => {
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-8 px-5 py-16 text-center sm:px-8">
-        {/* Big code, quietly set */}
         <div className="relative">
           <span
             aria-hidden
@@ -78,7 +77,7 @@ const NotFound = () => {
             Dashboard
           </Link>
           <Link
-            href="/dashboard/bookings"
+            href="/dashboard/my-bookings"
             className="outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             My bookings

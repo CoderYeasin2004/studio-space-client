@@ -2,15 +2,11 @@
 
 import * as React from "react";
 import { useSession } from "@/lib/auth-client";
-
-export interface FavoriteItem {
-  studioId: string;
-  addedAt: string; // ISO 8601 timestamp
-}
+import type { IFavoriteItem } from "@/types/favorite";
 
 interface StoreSnapshot {
   initialized: boolean;
-  items: Map<string, FavoriteItem>;
+  items: Map<string, IFavoriteItem>;
 }
 
 const GUEST_STORAGE_KEY = "studiospace-favorites-guest";
@@ -38,7 +34,7 @@ function userStorageKey(email: string) {
  */
 let mode: "guest" | "auth" = "guest";
 let userEmail: string | null = null;
-let items: Map<string, FavoriteItem> = new Map();
+let items: Map<string, IFavoriteItem> = new Map();
 let initialized = false;
 let cachedSnapshot: StoreSnapshot = {
   initialized: false,
@@ -59,15 +55,15 @@ function load() {
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        const next = new Map<string, FavoriteItem>();
+        const next = new Map<string, IFavoriteItem>();
         for (const item of parsed) {
           if (
             item &&
             typeof item === "object" &&
             "studioId" in item &&
-            typeof (item as FavoriteItem).studioId === "string"
+            typeof (item as IFavoriteItem).studioId === "string"
           ) {
-            next.set((item as FavoriteItem).studioId, item as FavoriteItem);
+            next.set((item as IFavoriteItem).studioId, item as IFavoriteItem);
           }
         }
         items = next;
@@ -155,7 +151,7 @@ function toggle(studioId: string) {
 /** Backend-ready favourite API helpers. These are structured so the fetch
  * calls can be connected once the corresponding Express routes exist.
  */
-async function apiFetchFavorites(token: string): Promise<FavoriteItem[]> {
+async function apiFetchFavorites(token: string): Promise<IFavoriteItem[]> {
   const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
   if (!baseUrl) return [];
   try {

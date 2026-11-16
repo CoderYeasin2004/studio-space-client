@@ -1,20 +1,18 @@
-export type StudioCategory =
+export type TStudioCategory =
   | "photography"
   | "film-sound"
   | "podcast"
   | "music"
   | "art";
 
-export type BookingStatus = "confirmed" | "pending" | "completed" | "cancelled";
+export type TListingStatus = "live" | "draft" | "paused";
 
-export type ListingStatus = "live" | "draft" | "paused";
-
-export interface StudioAmenity {
+export interface IStudioAmenity {
   name: string;
   icon: string;
 }
 
-export interface StudioHost {
+export interface IStudioHost {
   name: string;
   role: string;
   avatar: string;
@@ -23,7 +21,7 @@ export interface StudioHost {
 }
 
 
-export interface Studio {
+export interface IStudio {
   _id?: string;
   id?: string;
   slug: string;
@@ -31,7 +29,7 @@ export interface Studio {
   location: string;
   city: string;
   country: string;
-  category: StudioCategory;
+  category: TStudioCategory;
   description: string;
   longDescription: string;
   hourlyPrice: number;
@@ -40,68 +38,31 @@ export interface Studio {
   capacity: number;
   size: number;
   featured: boolean;
-  status: ListingStatus;
+  status: TListingStatus;
   images: string[];
-  amenities: StudioAmenity[];
-  host?: StudioHost;
+  amenities: IStudioAmenity[];
+  host?: IStudioHost;
   tags: string[];
   creatorEmail?: string;
 }
 
-export interface Category {
-  id: StudioCategory;
+export interface ICategory {
+  id: TStudioCategory;
   name: string;
   tagline: string;
   image: string;
   count: number;
 }
 
-export interface Booking {
-  id: string;
-  studioId: string;
-  studioSlug?: string;
-  studioName: string;
-  studioImage: string;
-  location: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  hours: number;
-  total: number;
-  status: BookingStatus;
-}
-
-export interface UserProfile {
-  name: string;
-  email: string;
-  role: string;
-  location: string;
-  avatar: string;
-  joined: string;
-  bio: string;
-}
-
-export interface ActivityEvent {
-  id: string;
-  label: string;
-  detail: string;
-  timestamp: string;
-  icon: string;
-}
-
-export interface DashboardStat {
-  label: string;
-  value: string;
-  delta: string;
-  trend: "up" | "down" | "neutral";
-  icon: string;
-}
-
-export interface Review {
-  id: string;
-  studioId: string;
-  author: string;
-  rating: number;
-  text: string;
-  date: string;
-}
+// Re-exports from feature-specific type modules for backwards compatibility
+export type { TBookingStatus, IBooking } from "@/types/booking";
+export type { IDashboardStat, IActivityEvent } from "@/types/dashboard";
+export type {
+  IReview,
+  IApiReview,
+  ISubmitReviewPayload,
+  IReviewEligibility,
+} from "@/types/review";
+export type { IUserProfile } from "@/types/user";
+export type { IFavoriteItem } from "@/types/favorite";
+export type { TTheme } from "@/types/theme";

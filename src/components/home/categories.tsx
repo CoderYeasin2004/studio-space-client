@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   Camera,
   Circle,
@@ -85,6 +86,8 @@ async function fetchCategoryStats(): Promise<CategoryStats> {
  * the category pre-selected. Category counts are fetched live from the API.
  */
 export const Categories = async () => {
+  await connection();
+
   const counts = await fetchCategoryStats();
 
   return (

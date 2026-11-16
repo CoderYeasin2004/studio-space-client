@@ -3,49 +3,78 @@
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { cn } from "cn";
-import { dayOffset } from "@/data/availability";
+import { dayOffset, formatIsoDate } from "@/data/availability";
 
-const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
-const MAX_OFFSET = 2;
+export const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-type BookingSlot = {
+export type BookingSlot = {
   date: string;
   startTime: string;
   endTime: string;
 };
 
-const toIso = (year: number, month: number, day: number): string => {
+export const toIso = (year: number, month: number, day: number): string => {
   const m = String(month + 1).padStart(2, "0");
   const d = String(day).padStart(2, "0");
 
   return `${year}-${m}-${d}`;
 };
 
-const toMinutes = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
+export const toMinutes = (time: string | undefined | null): number | null => {
+  if (!time || typeof time !== "string") return null;
+  const parts = time.split(":");
+  if (parts.length !== 2) return null;
+  const [hours, minutes] = parts.map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
   return hours * 60 + minutes;
 };
 
-// Check whether the entire day is booked (08:00–23:00)
-const isFullyBooked = (bookings: BookingSlot[]) => {
-  const slots = bookings
-    .map((booking) => ({
-      start: toMinutes(booking.startTime),
-      end: toMinutes(booking.endTime),
-    }))
-    .sort((a, b) => a.start - b.start);
+/** Returns true if the requested slot overlaps any existing booking on the same date. */
+export const isSlotConflicting = (
+  startHour: number,
+  duration: number,
+  bookedSlots: BookingSlot[],
+  selectedDate: string
+): boolean => {
+  const slotStart = startHour * 60;
+  const slotEnd = slotStart + duration * 60;
 
-  let coveredUntil = 8 * 60;
+  return bookedSlots.some((booking) => {
+    if (booking.date !== selectedDate) return false;
+    const bStart = toMinutes(booking.startTime);
+    const bEnd = toMinutes(booking.endTime);
+    // A booking with missing or malformed times cannot be evaluated for
+    // overlap, so it is skipped rather than treated as a conflict.
+    if (bStart === null || bEnd === null) return false;
+    return slotStart < bEnd && slotEnd > bStart;
+  });
+};
 
-  for (const slot of slots) {
-    if (slot.start > coveredUntil) return false;
+// Mirrors booking-form.tsx: 08:00–22:00 start times, slots must end by 23:00,
+// minimum booking duration is 1 hour. Adjacent bookings are allowed (only
+// overlapping intervals conflict).
+export const START_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+export const MIN_DURATION_HOURS = 1;
 
-    coveredUntil = Math.max(coveredUntil, slot.end);
+export const getAvailableStartHours = (
+  bookedSlots: BookingSlot[],
+  date: string,
+  duration: number = MIN_DURATION_HOURS
+): number[] => {
+  return START_HOURS.filter(
+    (hour) =>
+      hour + duration <= 23 && !isSlotConflicting(hour, duration, bookedSlots, date)
+  );
+};
 
-    if (coveredUntil >= 23 * 60) return true;
-  }
-
-  return false;
+/**
+ * A date is fully booked only when no valid booking time remains.
+ * A single booking does NOT fully book a date. We use the minimum duration
+ * (1 hour): if even one 1-hour slot is free, the date still has availability
+ * and remains selectable (partially available dates stay bookable).
+ */
+export const isDateFullyBooked = (bookings: BookingSlot[], isoDate: string): boolean => {
+  return getAvailableStartHours(bookings, isoDate).length === 0;
 };
 
 export const AvailabilityCalendar = ({
@@ -63,7 +92,7 @@ export const AvailabilityCalendar = ({
   const [bookings, setBookings] = React.useState<BookingSlot[]>([]);
   const effectiveBookings = externalBookings ?? bookings;
 
-  // Fetch real booking data from MongoDB
+  // Fetch booked slots from the backend when the studio changes.
   React.useEffect(() => {
     if (!studioId || externalBookings) return;
 
@@ -73,9 +102,7 @@ export const AvailabilityCalendar = ({
       try {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         );
 
         if (!response.ok) return;
@@ -98,27 +125,58 @@ export const AvailabilityCalendar = ({
       active = false;
     };
   }, [studioId, externalBookings]);
-  const todayIso = dayOffset(0);
-  const lastIso = dayOffset(59);
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const monthIndex = now.getMonth() + offset;
+  // Today's date is computed on the client (after hydration) so that
+  // past-date disabling and today-highlighting reflect the visitor's
+  // calendar rather than the server's clock. Initialising to an empty string
+  // keeps the server render identical to the first client render, which
+  // avoids hydration mismatches; the real value is applied once mounted.
+  const [todayIso] = React.useState(() => dayOffset(0));
 
-  const firstOfMonth = new Date(year, monthIndex, 1);
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+const [currentYear, currentMonth] = todayIso
+  ? todayIso.split("-").map(Number)
+  : [0, 0];
 
-  // Monday-first calendar
-  const leadingBlanks = (firstOfMonth.getDay() + 6) % 7;
+const baseDate = todayIso
+  ? new Date(currentYear, currentMonth - 1 + offset, 1)
+  : null;
 
-  const monthLabel = firstOfMonth.toLocaleDateString("en-GB", {
-    month: "long",
-    year: "numeric",
-  });
+const firstOfMonth = baseDate;
+const daysInMonth = baseDate
+  ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate()
+  : 0;
+
+const firstYear = firstOfMonth?.getFullYear() ?? 0;
+const firstMonth = firstOfMonth?.getMonth() ?? 0;
+
+const leadingBlanks = firstOfMonth?.getDay() ?? 0;
+
+const monthKey = `${firstYear}-${firstMonth}`;
+
+const monthLabel = firstOfMonth
+  ? firstOfMonth.toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    })
+  : "";
+
+  // Dates in this month with no remaining valid slot (minimum 1 hour).
+  const fullyBookedDates = React.useMemo(() => {
+    const set = new Set<string>();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso = toIso(firstYear, firstMonth, day);
+      if (isDateFullyBooked(effectiveBookings, iso)) {
+        set.add(iso);
+      }
+    }
+    return set;
+  }, [effectiveBookings, monthKey, daysInMonth]);
+
+  const isDayDisabled = (iso: string): boolean =>
+    iso < todayIso || fullyBookedDates.has(iso);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      {/* Calendar header */}
       <div className="flex items-center justify-between gap-2">
         <p className="font-heading text-sm font-semibold tracking-[-0.01em]">
           {monthLabel}
@@ -127,8 +185,7 @@ export const AvailabilityCalendar = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setOffset((o) => Math.max(0, o - 1))}
-            disabled={offset === 0}
+            onClick={() => setOffset((o) => o - 1)}
             aria-label="Previous month"
             className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
           >
@@ -137,8 +194,7 @@ export const AvailabilityCalendar = ({
 
           <button
             type="button"
-            onClick={() => setOffset((o) => Math.min(MAX_OFFSET, o + 1))}
-            disabled={offset === MAX_OFFSET}
+            onClick={() => setOffset((o) => o + 1)}
             aria-label="Next month"
             className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
           >
@@ -147,7 +203,6 @@ export const AvailabilityCalendar = ({
         </div>
       </div>
 
-      {/* Weekdays */}
       <div className="mt-3 grid grid-cols-7 gap-1">
         {WEEKDAYS.map((day, i) => (
           <span
@@ -159,7 +214,6 @@ export const AvailabilityCalendar = ({
         ))}
       </div>
 
-      {/* Calendar days */}
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: leadingBlanks }).map((_, i) => (
           <span key={`blank-${i}`} />
@@ -167,24 +221,11 @@ export const AvailabilityCalendar = ({
 
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
-
-          const iso = toIso(
-            firstOfMonth.getFullYear(),
-            firstOfMonth.getMonth(),
-            day,
-          );
-
-          const dayBookings = effectiveBookings.filter(
-            (booking) => booking.date === iso,
-          );
-
-          const hasBookings = dayBookings.length > 0;
-          const isBooked = isFullyBooked(dayBookings);
+          const iso = toIso(firstYear, firstMonth, day);
 
           const isPast = iso < todayIso;
-          const isBeyond = iso > lastIso;
-          const disabled = isBooked || isPast || isBeyond;
-
+          const isFullyBooked = fullyBookedDates.has(iso);
+          const disabled = isPast || isFullyBooked;
           const isSelected = selected === iso;
           const isToday = iso === todayIso;
 
@@ -194,72 +235,65 @@ export const AvailabilityCalendar = ({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(iso)}
-              aria-label={`${iso}${
-                isBooked
-                  ? " — fully booked"
-                  : hasBookings
-                    ? " — partially booked"
-                    : isPast
-                      ? " — past"
-                      : ""
-              }`}
+              aria-label={
+                isPast
+                  ? `${iso} — past date`
+                  : isFullyBooked
+                    ? `${iso} — fully booked`
+                    : `${iso} — available`
+              }
               aria-pressed={isSelected}
               className={cn(
                 "relative aspect-square rounded-md text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60",
 
                 isSelected &&
-                  "bg-primary text-primary-foreground hover:bg-primary",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
 
                 !isSelected &&
                   !disabled &&
-                  !hasBookings &&
                   "text-foreground hover:bg-primary/10 hover:text-primary",
 
                 !isSelected &&
-                  hasBookings &&
-                  !isBooked &&
-                  "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-100",
+                  disabled &&
+                  isFullyBooked &&
+                  "cursor-not-allowed bg-rose-500/20 text-rose-700",
 
                 !isSelected &&
-                  isBooked &&
-                  "cursor-not-allowed bg-rose-500/20 text-rose-700 line-through dark:text-rose-300",
-
-                !isSelected &&
+                  disabled &&
                   isPast &&
                   "cursor-not-allowed text-muted-foreground/40",
 
-                !isSelected &&
-                  isBeyond &&
-                  "cursor-not-allowed text-muted-foreground/40",
-
-                !isSelected && isToday && "ring-1 ring-primary/60",
+                !isSelected && isToday && "ring-1 ring-primary/60"
               )}
             >
-              {day}
+              <span className="relative z-10">{day}</span>
+
+              {!isSelected && !isPast && (
+                <span
+                  className={cn(
+                    "absolute -bottom-1 left-1/2 -translate-x-1/2 size-1.5 rounded-full",
+                    isFullyBooked ? "bg-rose-500" : "bg-emerald-500"
+                  )}
+                />
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Legend */}
       <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border pt-3 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary" />
+          <span className="size-2 rounded-full bg-emerald-500" />
           Available
         </span>
 
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-emerald-500" />
-          Partially booked
-        </span>
-
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-rose-700" />
+          <span className="size-2 rounded-full bg-rose-500" />
           Fully booked
         </span>
 
         <span className="ml-auto">
-          {selected ? "1 day selected" : "Pick a date"}
+          {selected ? formatIsoDate(selected) : "Pick a date"}
         </span>
       </div>
     </div>

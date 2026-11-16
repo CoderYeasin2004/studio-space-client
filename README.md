@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StudioSpace
 
-## Getting Started
+StudioSpace is a peer-to-peer creative workspace and production studio sharing platform where creators can discover and book creative spaces.
 
-First, run the development server:
+## Live Website
 
-```bash
+**Live-Link:**  
+
+## Features
+
+- Explore creative studios by category.
+- View studio details, pricing, amenities, and availability.
+- Register and log in using email/password or Google.
+- Add, edit, and delete studio listings.
+- Book studios and manage bookings.
+- Prevent overlapping confirmed bookings.
+- Dashboard for managing personal listings and bookings.
+- Responsive design with light and dark themes.
+- Loading states, toast notifications, and custom error pages.
+
+## Technology Stack
+
+**Frontend:** Next.js, React, TypeScript, Tailwind CSS
+
+**Authentication:** Better Auth, JWT
+
+**Backend:** Node.js, Express.js
+
+**Database:** MongoDB
+
+## Installation and Setup
+
+### Client Setup
+
+
+git clone YOUR_CLIENT_REPOSITORY_URL
+cd YOUR_CLIENT_PROJECT_FOLDER
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Backend Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Clone the backend project, install dependencies, configure environment variables, and run:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+npm install
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Configure the required environment variables in `.env.local` for the frontend and `.env` for the backend.
 
-## Deploy on Vercel
+Do not commit secret keys or credentials.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Local Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000

@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRightIcon } from "lucide-react";
 import { img } from "@/lib/images";
-import type { Booking } from "@/types/studio";
+import { formatCurrency } from "@/lib/currency";
+import type { IBooking } from "@/types/studio";
 import { StatusBadge } from "./status-badge";
 import {
   Table,
@@ -18,7 +19,7 @@ import {
  * Rows deep-link to the studio via the booking's own `studioSlug`; statuses
  * come from the booking record.
  */
-export const BookingTable = ({ bookings }: { bookings: Booking[] }) => {
+export const BookingTable = ({ bookings }: { bookings: IBooking[] }) => {
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <Table className="min-w-[640px]">
@@ -70,7 +71,7 @@ export const BookingTable = ({ bookings }: { bookings: Booking[] }) => {
                   {booking.hours}h
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium tabular-nums">
-                  £{booking.total}
+                  {formatCurrency(booking.total)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={booking.status} />

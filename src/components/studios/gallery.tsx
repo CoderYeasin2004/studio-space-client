@@ -43,52 +43,47 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
 
   return (
     <div>
-     {/* Main frame */}
-<div className="group relative aspect-[16/10] overflow-hidden rounded-2xl bg-muted sm:aspect-[16/9] lg:aspect-[2/1]">
-  <Image
-    src={img(images[active], "gallery")}
-    alt={`${name} — photo ${active + 1} of ${count}`}
-    fill
-    priority
-    sizes="(max-width: 1024px) 100vw, 66vw"
-    className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-  />
+      <div className="group relative aspect-[16/10] overflow-hidden rounded-2xl bg-muted sm:aspect-[16/9] lg:aspect-[2/1]">
+        <Image
+          src={img(images[active], "gallery")}
+          alt={`${name} — photo ${active + 1} of ${count}`}
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 66vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+        />
 
-  {/* Image overlay */}
-  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
 
-  {/* Expand button */}
-  <button
-    type="button"
-    onClick={() => setLightbox(true)}
-    aria-label="Expand photo"
-    className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-black/65 group-hover:opacity-100 focus-visible:opacity-100"
-  >
-    <Maximize2Icon className="size-4" />
-  </button>
+        <button
+          type="button"
+          onClick={() => setLightbox(true)}
+          aria-label="Expand photo"
+          className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-sm transition-all cursor-pointer hover:bg-black/65 group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          <Maximize2Icon className="size-4" />
+        </button>
 
-  {/* Image counter */}
-  <span className="absolute bottom-4 left-4 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium tabular-nums text-white backdrop-blur-md">
-    {active + 1} / {count}
-  </span>
+        <span className="absolute bottom-4 left-4 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium tabular-nums text-white backdrop-blur-md">
+          {active + 1} / {count}
+        </span>
 
-  {count > 1 && (
-    <>
-      <NavButton
-        side="left"
-        onClick={() => go(-1)}
-        label="Previous photo"
-      />
-      <NavButton
-        side="right"
-        onClick={() => go(1)}
-        label="Next photo"
-      />
-    </>
-  )}
-</div>
+        {count > 1 && (
+          <>
+            <NavButton
+              side="left"
+              onClick={() => go(-1)}
+              label="Previous photo"
+            />
+            <NavButton
+              side="right"
+              onClick={() => go(1)}
+              label="Next photo"
+            />
+          </>
+        )}
+      </div>
 
-      {/* Thumbnail rail */}
       {count > 1 && (
         <div className="mt-3 grid grid-cols-4 gap-3">
           {images.map((image, index) => (
@@ -99,7 +94,7 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
               aria-label={`Show photo ${index + 1}`}
               aria-current={index === active}
              className={cn(
-  "relative aspect-[3/2] overflow-hidden rounded-xl bg-muted outline-none transition-all duration-300",
+  "relative aspect-[3/2] overflow-hidden rounded-xl bg-muted outline-none transition-all duration-300 cursor-pointer",
   index === active
     ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
     : "opacity-65 hover:opacity-100",
@@ -117,7 +112,6 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
         </div>
       )}
 
-      {/* Lightbox */}
       <Dialog open={lightbox} onOpenChange={setLightbox}>
         <DialogContent
           showCloseButton={false}
@@ -142,7 +136,7 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
                 type="button"
                 onClick={() => go(-1)}
                 aria-label="Previous photo"
-                className="inline-flex size-9 items-center justify-center rounded-full text-white outline-none transition-colors hover:bg-white/15 focus-visible:ring-3 focus-visible:ring-white/60"
+                className="inline-flex size-9 items-center justify-center rounded-full text-white cursor-pointer outline-none transition-colors hover:bg-white/15 focus-visible:ring-3 focus-visible:ring-white/60"
               >
                 <ChevronLeftIcon className="size-5" />
               </button>
@@ -150,7 +144,7 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
                 type="button"
                 onClick={() => go(1)}
                 aria-label="Next photo"
-                className="inline-flex size-9 items-center justify-center rounded-full text-white outline-none transition-colors hover:bg-white/15 focus-visible:ring-3 focus-visible:ring-white/60"
+                className="inline-flex size-9 items-center justify-center rounded-full text-white cursor-pointer outline-none transition-colors hover:bg-white/15 focus-visible:ring-3 focus-visible:ring-white/60"
               >
                 <ChevronRightIcon className="size-5" />
               </button>
@@ -158,7 +152,7 @@ export const Gallery = ({ images, name }: { images: string[]; name: string }) =>
                 type="button"
                 onClick={() => setLightbox(false)}
                 aria-label="Close gallery"
-                className="inline-flex size-9 items-center justify-center rounded-full text-white outline-none transition-colors hover:bg-white/15 focus-visible:ring-3 focus-visible:ring-white/60"
+                className="inline-flex size-9 items-center justify-center rounded-full text-white cursor-pointer outline-none transition-colors hover:bg-white/15 focus-visible:ring-3 focus-visible:ring-white/60"
               >
                 <XIcon className="size-5" />
               </button>
@@ -185,7 +179,7 @@ const NavButton = ({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "absolute top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-sm outline-none transition-all hover:bg-black/70 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-white/60 group-hover:opacity-100",
+        "absolute top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-sm transition-all cursor-pointer hover:bg-black/70 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-white/60 group-hover:opacity-100",
         side === "left" ? "left-3" : "right-3",
       )}
     >

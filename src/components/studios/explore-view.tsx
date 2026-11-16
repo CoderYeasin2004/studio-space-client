@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import * as React from "react";
@@ -15,6 +17,7 @@ import {
 import { cn } from "cn";
 import { categories, categoryLabels } from "@/data/categories";
 import { dayOffset } from "@/data/availability";
+import { formatCurrency } from "@/lib/currency";
 import { StudioCard } from "@/components/studio/studio-card";
 import { ExploreSkeleton } from "@/components/studios/explore-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -28,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Studio, StudioCategory } from "@/types/studio";
+import type { IStudio, TStudioCategory } from "@/types/studio";
 
 type SortKey =
   | "recommended"
@@ -37,7 +40,7 @@ type SortKey =
   | "rating"
   | "reviews";
 
-const PRICE_MAX = 200;
+const PRICE_MAX = 10000;
 
 const sortLabels: Record<SortKey, string> = {
   recommended: "Recommended",
@@ -70,7 +73,7 @@ const categoryItems: Record<string, string> = {
 
 interface Filters {
   query: string;
-  category: StudioCategory | "all";
+  category: TStudioCategory | "all";
   city: string;
   date: string;
   price: [number, number];
@@ -92,8 +95,6 @@ type LoadState = "loading" | "error" | "ready";
 
 type AvailabilitySlot = {
   date: string;
-  startTime: string;
-  endTime: string;
 };
 
 /** Minimum booking duration in minutes (reuses BookingCard DURATION_OPTIONS min = 1 hour). */
@@ -105,49 +106,14 @@ const BOOKING_WINDOW_START_MINS = 8 * 60;
 /** Booking window end in minutes from midnight (startHour + hours <= 23). */
 const BOOKING_WINDOW_END_MINS = 23 * 60;
 
-const toMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
-
 /**
- * Determines whether at least one continuous available time interval remains
- * for the given date that can accommodate the minimum booking duration.
- *
- * Merges overlapping/adjacent booking intervals and checks gaps against the
- * 08:00–23:00 booking window used by BookingCard.
+ * Determines whether a date has no existing booking for the studio.
  */
 const hasAvailableSlot = (
   bookedSlots: AvailabilitySlot[],
   selectedDate: string,
 ): boolean => {
-  const dayBookings = bookedSlots.filter((b) => b.date === selectedDate);
-  if (dayBookings.length === 0) return true;
-
-  const intervals = dayBookings
-    .map((b) => ({ start: toMinutes(b.startTime), end: toMinutes(b.endTime) }))
-    .sort((a, b) => a.start - b.start);
-
-  // Merge overlapping/adjacent intervals.
-  const merged: { start: number; end: number }[] = [];
-  for (const interval of intervals) {
-    const last = merged[merged.length - 1];
-    if (last && interval.start <= last.end) {
-      last.end = Math.max(last.end, interval.end);
-    } else {
-      merged.push({ ...interval });
-    }
-  }
-
-  // Check gaps within the booking window.
-  let prevEnd = BOOKING_WINDOW_START_MINS;
-  for (const interval of merged) {
-    if (interval.start - prevEnd >= MIN_BOOKING_DURATION_MINS) return true;
-    prevEnd = Math.max(prevEnd, interval.end);
-  }
-  if (BOOKING_WINDOW_END_MINS - prevEnd >= MIN_BOOKING_DURATION_MINS) return true;
-
-  return false;
+  return !bookedSlots.some((b) => b.date === selectedDate);
 };
 
 /**
@@ -171,12 +137,12 @@ export const ExploreView = () => {
       categories.some((c) => c.id === requested);
     return {
       ...DEFAULT_FILTERS,
-      category: isValid ? ((requested ?? "all") as StudioCategory | "all") : "all",
+      category: isValid ? ((requested ?? "all") as TStudioCategory | "all") : "all",
     };
   });
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  const [studios, setStudios] = React.useState<Studio[]>([]);
+  const [studios, setStudios] = React.useState<IStudio[]>([]);
   const [loadState, setLoadState] = React.useState<LoadState>("loading");
   /** Bumped by "Try again" — re-runs the fetch effect below. */
   const [reloadKey, setReloadKey] = React.useState(0);
@@ -189,34 +155,35 @@ export const ExploreView = () => {
   const [availabilityErrors, setAvailabilityErrors] = React.useState<Record<string, boolean>>({});
 
   /** Fetch + normalize the live catalogue. Pure — callers land the state. */
-  const fetchLiveStudios = React.useCallback(async (): Promise<
-    Studio[] | null
-  > => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
-      );
+  const fetchLiveStudios = React.useCallback(
+    async (): Promise<IStudio[] | null> => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
+        );
 
-      if (!response.ok) {
-        console.error(`Studios request failed (${response.status})`);
+        if (!response.ok) {
+          console.error(`Studios request failed (${response.status})`);
+          return null;
+        }
+
+        const data: unknown = await response.json();
+
+        if (!Array.isArray(data)) {
+          console.error("Studios response was not a list");
+          return null;
+        }
+
+        return (data as IStudio[])
+          .filter((s) => s.status === "live")
+          .map((s) => ({ ...s, id: s._id ?? s.id ?? "" }));
+      } catch (error) {
+        console.error("Failed to load studios:", error);
         return null;
       }
-
-      const data: unknown = await response.json();
-
-      if (!Array.isArray(data)) {
-        console.error("Studios response was not a list");
-        return null;
-      }
-
-      return (data as Studio[])
-        .filter((s) => s.status === "live")
-        .map((s) => ({ ...s, id: s._id ?? s.id ?? "" }));
-    } catch (error) {
-      console.error("Failed to load studios:", error);
-      return null;
-    }
-  }, []);
+    },
+    [],
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -239,19 +206,12 @@ export const ExploreView = () => {
   }, [fetchLiveStudios, reloadKey]);
 
   /** Slider ceiling — PRICE_MAX floor, rounded up to the priciest live studio. */
-  const priceCeiling = React.useMemo(() => {
-    const highest = studios.reduce(
-      (max, s) => Math.max(max, s.hourlyPrice),
-      PRICE_MAX,
-    );
-    return Math.ceil(highest / 50) * 50;
-  }, [studios]);
+  const priceCeiling = Math.ceil(
+    Math.max(PRICE_MAX, ...studios.map((s) => s.hourlyPrice)) / 50,
+  ) * 50;
 
   /** City filter options — derived from the fetched catalogue. */
-  const cities = React.useMemo(
-    () => [...new Set(studios.map((s) => s.city))].sort(),
-    [studios],
-  );
+  const cities = [...new Set(studios.map((s) => s.city))].sort();
 
   /**
    * Widen the default price range once real data lands — but only while the
@@ -268,8 +228,28 @@ export const ExploreView = () => {
     }
   }, [priceCeiling, filters.price]);
 
-  const update = <K extends keyof Filters>(key: K, value: Filters[K]) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const setQuery = (value: string) => {
+    setFilters((prev) => ({ ...prev, query: value }));
+  };
+
+  const setCategory = (value: TStudioCategory | "all") => {
+    setFilters((prev) => ({ ...prev, category: value }));
+  };
+
+  const setCity = (value: string) => {
+    setFilters((prev) => ({ ...prev, city: value }));
+  };
+
+  const setDate = (value: string) => {
+    setFilters((prev) => ({ ...prev, date: value }));
+  };
+
+  const setCapacity = (value: number) => {
+    setFilters((prev) => ({ ...prev, capacity: value }));
+  };
+
+  const setSort = (value: SortKey) => {
+    setFilters((prev) => ({ ...prev, sort: value }));
   };
 
   const handlePrice = (value: number | readonly number[]) => {
@@ -310,7 +290,7 @@ export const ExploreView = () => {
    * Fetch real booked slots for the given studios from the backend.
    * Skips studios that are already cached or errored.
    */
-  const fetchAvailability = React.useCallback(async (studioIds: string[]) => {
+  async function fetchAvailability(studioIds: string[]) {
     if (studioIds.length === 0) return;
 
     setAvailabilityLoading(true);
@@ -348,7 +328,7 @@ export const ExploreView = () => {
     );
 
     setAvailabilityLoading(false);
-  }, []);
+  }
 
   /**
    * Trigger availability fetch when a date filter is applied.
@@ -357,8 +337,6 @@ export const ExploreView = () => {
    */
   React.useEffect(() => {
     if (!filters.date) {
-      setAvailabilityCache({});
-      setAvailabilityErrors({});
       return;
     }
 
@@ -401,87 +379,85 @@ export const ExploreView = () => {
     fetchAvailability,
   ]);
 
-  const results = React.useMemo(() => {
-    const q = filters.query.trim().toLowerCase();
+  const q = filters.query.trim().toLowerCase();
 
-    const matched = studios.filter((studio) => {
-      if (studio.status !== "live") return false;
-      if (filters.category !== "all" && studio.category !== filters.category)
-        return false;
-      if (filters.city !== "all" && studio.city !== filters.city) return false;
+  const matched = studios.filter((studio) => {
+    if (studio.status !== "live") return false;
+    if (filters.category !== "all" && studio.category !== filters.category)
+      return false;
+    if (filters.city !== "all" && studio.city !== filters.city) return false;
 
-      // Date filter: compute availability status for display, but never
-      // hide a studio based on availability.
-      let availabilityStatus:
-        | "available"
-        | "partially-available"
-        | "fully-booked"
-        | undefined = undefined;
-      if (filters.date) {
-        const studioId = studio.id ?? "";
-        const booked = availabilityCache[studioId];
-        // If availability hasn't been fetched yet for this studio, leave
-        // status as null — the loading state handles the UI.
-        if (booked) {
-          if (booked.length === 0) {
-            availabilityStatus = "available";
-          } else if (hasAvailableSlot(booked, filters.date)) {
-            availabilityStatus = "partially-available";
-          } else {
-            availabilityStatus = "fully-booked";
-          }
+    // Date filter: compute availability status for display, but never
+    // hide a studio based on availability.
+    let availabilityStatus:
+      | "available"
+      | "partially-available"
+      | "fully-booked"
+      | undefined = undefined;
+    if (filters.date) {
+      const studioId = studio.id ?? "";
+      const booked = availabilityCache[studioId];
+      // If availability hasn't been fetched yet for this studio, leave
+      // status as null — the loading state handles the UI.
+      if (booked) {
+        if (booked.length === 0) {
+          availabilityStatus = "available";
+        } else if (hasAvailableSlot(booked, filters.date)) {
+          availabilityStatus = "partially-available";
+        } else {
+          availabilityStatus = "fully-booked";
         }
       }
-
-      if (
-        studio.hourlyPrice < filters.price[0] ||
-        studio.hourlyPrice > filters.price[1]
-      )
-        return false;
-      if (filters.capacity && studio.capacity < filters.capacity) return false;
-
-      if (q) {
-        const haystack = [
-          studio.name,
-          studio.location,
-          studio.city,
-          studio.country,
-          studio.description,
-          studio.tags.join(" "),
-          studio.amenities.map((a) => a.name).join(" "),
-          studio.host?.name ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
-
-    const sorted = [...matched];
-    switch (filters.sort) {
-      case "price-asc":
-        sorted.sort((a, b) => a.hourlyPrice - b.hourlyPrice);
-        break;
-      case "price-desc":
-        sorted.sort((a, b) => b.hourlyPrice - a.hourlyPrice);
-        break;
-      case "rating":
-        sorted.sort((a, b) => b.rating - a.rating);
-        break;
-      case "reviews":
-        sorted.sort((a, b) => b.reviewCount - a.reviewCount);
-        break;
-      default:
-        sorted.sort(
-          (a, b) =>
-            Number(b.featured) - Number(a.featured) ||
-            b.rating - a.rating ||
-            b.reviewCount - a.reviewCount,
-        );
     }
-    return sorted;
-  }, [filters, studios, availabilityCache]);
+
+    if (
+      studio.hourlyPrice < filters.price[0] ||
+      studio.hourlyPrice > filters.price[1]
+    )
+      return false;
+    if (filters.capacity && studio.capacity < filters.capacity) return false;
+
+    if (q) {
+      const haystack = [
+        studio.name,
+        studio.location,
+        studio.city,
+        studio.country,
+        studio.description,
+        studio.tags.join(" "),
+        studio.amenities.map((a) => a.name).join(" "),
+        studio.host?.name ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const sorted = [...matched];
+  switch (filters.sort) {
+    case "price-asc":
+      sorted.sort((a, b) => a.hourlyPrice - b.hourlyPrice);
+      break;
+    case "price-desc":
+      sorted.sort((a, b) => b.hourlyPrice - a.hourlyPrice);
+      break;
+    case "rating":
+      sorted.sort((a, b) => b.rating - a.rating);
+      break;
+    case "reviews":
+      sorted.sort((a, b) => b.reviewCount - a.reviewCount);
+      break;
+    default:
+      sorted.sort(
+        (a, b) =>
+          Number(b.featured) - Number(a.featured) ||
+          b.rating - a.rating ||
+          b.reviewCount - a.reviewCount,
+      );
+  }
+  const results = sorted;
 
   if (loadState === "loading") {
     return <ExploreSkeleton />;
@@ -538,10 +514,8 @@ export const ExploreView = () => {
 
   return (
     <div>
-      {/* ---------------- Filter bar ---------------- */}
       <div className="sticky top-16 z-30 border-y border-border bg-background/90 backdrop-blur-xl lg:top-[72px]">
         <div className="mx-auto max-w-[1440px] px-5 py-3.5 sm:px-8 lg:px-12">
-          {/* Row 1 — search + mobile toggle */}
           <div className="flex items-center gap-2.5">
             <div className="relative flex-1">
               <SearchIcon
@@ -555,16 +529,16 @@ export const ExploreView = () => {
                 id="studio-search"
                 type="search"
                 value={filters.query}
-                onChange={(e) => update("query", e.target.value)}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search studios, amenities, hosts, cities…"
                 className="h-10 rounded-full bg-card pr-9 pl-10 shadow-none"
               />
               {filters.query && (
                 <button
                   type="button"
-                  onClick={() => update("query", "")}
+                  onClick={() => setQuery("")}
                   aria-label="Clear search"
-                  className="absolute top-1/2 right-2.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="absolute top-1/2 right-2.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground cursor-pointer outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <XIcon className="size-3.5" />
                 </button>
@@ -598,18 +572,16 @@ export const ExploreView = () => {
             )}
           </div>
 
-          {/* Row 2 — structured filters (collapsible on mobile) */}
           <div
             className={cn(
               "mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]",
               !mobileOpen && "hidden lg:grid",
             )}
           >
-            {/* Category */}
             <Select
               value={filters.category}
               onValueChange={(v) =>
-                update("category", (v ?? "all") as Filters["category"])
+                setCategory(v ?? "all")
               }
               items={categoryItems}
             >
@@ -626,10 +598,9 @@ export const ExploreView = () => {
               </SelectContent>
             </Select>
 
-            {/* City */}
             <Select
               value={filters.city}
-              onValueChange={(v) => update("city", v ?? "all")}
+              onValueChange={(v) => setCity(v ?? "all")}
               items={{ all: "All cities", ...Object.fromEntries(cities.map((c) => [c, c])) }}
             >
               <SelectTrigger className="h-9 w-full bg-card">
@@ -645,7 +616,6 @@ export const ExploreView = () => {
               </SelectContent>
             </Select>
 
-            {/* Free-on date */}
             <div className="flex h-9 items-center gap-2 rounded-lg border border-input bg-card pr-2 pl-2.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
               <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
               <label htmlFor="free-on" className="shrink-0 text-xs text-muted-foreground">
@@ -657,27 +627,36 @@ export const ExploreView = () => {
                 value={filters.date}
                 min={dayOffset(0)}
                 max={dayOffset(59)}
-                onChange={(e) => update("date", e.target.value)}
+                onChange={(e) => {
+                    setDate(e.target.value);
+                    if (!e.target.value) {
+                      setAvailabilityCache({});
+                      setAvailabilityErrors({});
+                    }
+                  }}
                 className="min-w-0 flex-1 bg-transparent text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
               />
               {filters.date && (
                 <button
                   type="button"
-                  onClick={() => update("date", "")}
+                  onClick={() => {
+                    setDate("");
+                    setAvailabilityCache({});
+                    setAvailabilityErrors({});
+                  }}
                   aria-label="Clear date"
-                  className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <XIcon className="size-3" />
                 </button>
               )}
             </div>
 
-            {/* Price range */}
             <div className="flex h-9 flex-col justify-center rounded-lg border border-input bg-card px-2.5 py-1">
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-muted-foreground">Price / hr</span>
                 <span className="font-medium tabular-nums">
-                  £{filters.price[0]} – £{filters.price[1]}
+                  {formatCurrency(filters.price[0])} – {formatCurrency(filters.price[1])}
                   {filters.price[1] === priceCeiling ? "+" : ""}
                 </span>
               </div>
@@ -692,10 +671,9 @@ export const ExploreView = () => {
               />
             </div>
 
-            {/* Capacity */}
             <Select
               value={String(filters.capacity)}
-              onValueChange={(v) => update("capacity", Number(v ?? 0))}
+              onValueChange={(v) => setCapacity(Number(v ?? 0))}
               items={capacityItems}
             >
               <SelectTrigger className="h-9 w-full bg-card">
@@ -710,11 +688,10 @@ export const ExploreView = () => {
               </SelectContent>
             </Select>
 
-            {/* Sort */}
             <Select
               value={filters.sort}
               onValueChange={(v) =>
-                update("sort", (v ?? "recommended") as SortKey)
+                setSort(v ?? "recommended")
               }
               items={sortItems}
             >
@@ -731,7 +708,6 @@ export const ExploreView = () => {
             </Select>
           </div>
 
-          {/* Mobile reset */}
           {isDirty && mobileOpen && (
             <Button
               variant="outline"
@@ -745,7 +721,6 @@ export const ExploreView = () => {
         </div>
       </div>
 
-      {/* ---------------- Results ---------------- */}
       <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-8 lg:px-12">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <p className="text-sm text-muted-foreground">
@@ -819,7 +794,7 @@ export const ExploreView = () => {
                   studio={studio}
                   priority={index < 3}
                   availability={availabilityStatus}
-                  onReviewClick={() => router.push(`/studios/${studio.slug}/reviews`)}
+                  reviewHref={`/studios/${studio.slug}/reviews`}
                 />
               );
             })}
