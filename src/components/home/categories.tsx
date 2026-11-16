@@ -50,9 +50,9 @@ interface CategoryStats {
 }
 
 async function fetchCategoryStats(): Promise<CategoryStats> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    console.error("NEXT_PUBLIC_SERVER_API_URL is not defined");
     return {};
   }
 

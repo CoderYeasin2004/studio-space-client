@@ -11,9 +11,9 @@ import type {
 } from "@/types/review";
 
 export async function fetchStudios(): Promise<unknown[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    console.error("NEXT_PUBLIC_SERVER_API_URL is not defined");
     return [];
   }
 
@@ -43,9 +43,9 @@ export async function fetchStudios(): Promise<unknown[]> {
 export async function fetchStudioReviews(
   studioId: string,
 ): Promise<IApiReview[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    console.error("NEXT_PUBLIC_SERVER_API_URL is not defined");
     return [];
   }
 
@@ -80,9 +80,9 @@ export async function submitStudioReview(
   payload: ISubmitReviewPayload,
   token?: string,
 ): Promise<boolean> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    console.error("NEXT_PUBLIC_SERVER_API_URL is not defined");
     return false;
   }
 
@@ -115,9 +115,9 @@ export async function checkReviewEligibility(
   studioId: string,
   token?: string,
 ): Promise<IReviewEligibility> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    console.error("NEXT_PUBLIC_SERVER_API_URL is not defined");
     return { canReview: false, reason: "Server not configured" };
   }
 

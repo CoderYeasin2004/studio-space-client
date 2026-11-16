@@ -6,9 +6,9 @@ import { connection } from "next/server";
 const STUDIOS_LIMIT = 6;
 
 async function fetchFeaturedStudios(): Promise<IStudio[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) {
-    console.error("NEXT_PUBLIC_SERVER_BASE_URL is not defined");
+    console.error("NEXT_PUBLIC_SERVER_API_URL is not defined");
     return [];
   }
 

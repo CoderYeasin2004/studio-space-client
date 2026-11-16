@@ -72,7 +72,7 @@ const confirmDelete = async () => {
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(deleting.id)}`,
+      `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(deleting.id)}`,
       {
         method: "DELETE",
         headers: {

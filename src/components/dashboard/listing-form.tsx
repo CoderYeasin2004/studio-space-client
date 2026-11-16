@@ -345,8 +345,8 @@ export const ListingForm = ({
 
       const endpoint =
         isEdit && listingId
-          ? `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(listingId)}`
-          : `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`;
+          ? `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(listingId)}`
+          : `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios`;
      
       const response = await fetch(endpoint, {
         method: isEdit ? "PATCH" : "POST",

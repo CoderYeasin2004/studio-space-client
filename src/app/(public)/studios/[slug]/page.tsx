@@ -38,7 +38,7 @@ export const generateMetadata = async ({
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
+      `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${slug}`,
       { cache: "no-store" },
     );
 
@@ -67,7 +67,7 @@ const StudioDetailsPage = async ({
   await connection();
 
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
+    `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${slug}`,
     {
       cache: "no-store",
     },

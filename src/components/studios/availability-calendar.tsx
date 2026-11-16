@@ -101,7 +101,7 @@ export const AvailabilityCalendar = ({
     const loadBookings = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
+          `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(studioId)}/availability`,
           { cache: "no-store" },
         );
 

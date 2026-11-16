@@ -152,7 +152,7 @@ function toggle(studioId: string) {
  * calls can be connected once the corresponding Express routes exist.
  */
 async function apiFetchFavorites(token: string): Promise<IFavoriteItem[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) return [];
   try {
     const res = await fetch(`${baseUrl}/api/favorites`, {
@@ -174,7 +174,7 @@ async function apiFetchFavorites(token: string): Promise<IFavoriteItem[]> {
 }
 
 async function apiAddFavorite(token: string, studioId: string, addedAt: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) return;
   try {
     await fetch(`${baseUrl}/api/favorites`, {
@@ -191,7 +191,7 @@ async function apiAddFavorite(token: string, studioId: string, addedAt: string) 
 }
 
 async function apiRemoveFavorite(token: string, studioId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   if (!baseUrl) return;
   try {
     await fetch(`${baseUrl}/api/favorites/${encodeURIComponent(studioId)}`, {

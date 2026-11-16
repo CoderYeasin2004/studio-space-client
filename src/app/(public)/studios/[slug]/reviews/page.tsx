@@ -38,7 +38,7 @@ const StudioReviewsContent = async ({
 }) => {
   const { slug } = await params;
   const studioResponse = await fetch(
-    `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${slug}`,
+    `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${slug}`,
     { cache: "no-store" },
   );
 

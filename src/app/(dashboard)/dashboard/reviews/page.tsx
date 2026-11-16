@@ -77,7 +77,7 @@ const ReviewsPage = () => {
         }
 
         const studiosResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studios/${encodeURIComponent(user.email)}`,
+          `${process.env.NEXT_PUBLIC_SERVER_API_URL}/my-studios/${encodeURIComponent(user.email)}`,
           {
             cache: "no-store",
             headers: {

@@ -94,7 +94,7 @@ const EditListing = async ({
 
 const getListing = async (id: string): Promise<IStudio | undefined> => {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(id)}`,
+    `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(id)}`,
     {
       cache: "no-store",
     },

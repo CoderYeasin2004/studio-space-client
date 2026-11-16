@@ -107,7 +107,7 @@ const total = subtotal;
     const loadAvailability = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
+          `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(studioId)}/availability`,
           { cache: "no-store" }
         );
 
@@ -149,7 +149,7 @@ const total = subtotal;
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
+        `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(studioId)}/availability`,
         { cache: "no-store" }
       );
 
@@ -204,7 +204,7 @@ const total = subtotal;
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking`,
+        `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/booking`,
         {
           method: "POST",
           headers: {

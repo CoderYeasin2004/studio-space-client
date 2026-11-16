@@ -49,7 +49,7 @@ try {
       throw new Error("Authentication required");
     }
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studios/${encodeURIComponent(user.email)}`,
+      `${process.env.NEXT_PUBLIC_SERVER_API_URL}/my-studios/${encodeURIComponent(user.email)}`,
       {
         cache: "no-store",
         headers: {
@@ -121,7 +121,7 @@ if (user?.email) {
       throw new Error("Authentication required");
     }
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
+      `${process.env.NEXT_PUBLIC_SERVER_API_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
       {
         cache: "no-store",
         headers: {

@@ -159,7 +159,7 @@ export const ExploreView = () => {
     async (): Promise<IStudio[] | null> => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios`,
+          `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios`,
         );
 
         if (!response.ok) {
@@ -299,7 +299,7 @@ export const ExploreView = () => {
       studioIds.map(async (studioId) => {
         try {
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/${encodeURIComponent(studioId)}/availability`,
+            `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/${encodeURIComponent(studioId)}/availability`,
             { cache: "no-store" },
           );
 

@@ -34,7 +34,7 @@ const ListingsPage = async () => {
       throw new Error("Authentication required");
     }
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studios/${encodeURIComponent(session.user.email)}`,
+      `${process.env.NEXT_PUBLIC_SERVER_API_URL}/my-studios/${encodeURIComponent(session.user.email)}`,
       {
         cache: "no-store",
         headers: {

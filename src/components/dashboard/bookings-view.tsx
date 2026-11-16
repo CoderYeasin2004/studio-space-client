@@ -124,7 +124,7 @@ export const BookingsView = ({ bookings }: { bookings: IBooking[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}/confirm`,
+        `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/booking/${encodeURIComponent(booking.id)}/confirm`,
         {
           method: "PATCH",
           headers: {
@@ -178,7 +178,7 @@ export const BookingsView = ({ bookings }: { bookings: IBooking[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(booking.id)}`,
+        `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/booking/${encodeURIComponent(booking.id)}`,
         {
           method: "DELETE",
           headers: {
@@ -252,7 +252,7 @@ export const BookingsView = ({ bookings }: { bookings: IBooking[] }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/studios/booking/${encodeURIComponent(completingBooking.id)}/complete`,
+        `${process.env.NEXT_PUBLIC_SERVER_API_URL}/studios/booking/${encodeURIComponent(completingBooking.id)}/complete`,
         {
           method: "PATCH",
           headers: {

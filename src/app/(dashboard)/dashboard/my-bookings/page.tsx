@@ -27,7 +27,7 @@ const BookingsPage = async () => {
         throw new Error("Authentication required");
       }
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
+        `${process.env.NEXT_PUBLIC_SERVER_API_URL}/my-studio-bookings/${encodeURIComponent(user.email)}`,
         {
           cache: "no-store",
           headers: {
