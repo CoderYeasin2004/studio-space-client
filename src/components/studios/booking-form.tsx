@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   ClockIcon,
   MessageSquareIcon,
@@ -82,6 +83,7 @@ export const BookingForm = ({
   const [availabilityError, setAvailabilityError] = React.useState(false);
 
   const studioId = studio.id ?? studio._id ?? "";
+  const router = useRouter();
 
 const effectiveBookings = bookedSlots;
 
@@ -266,6 +268,8 @@ const total = subtotal;
         title: "Booking request sent",
         description: `${studio.name} · ${formatIsoDate(date)} · ${label(startHour)}–${label(endHour)} · ${formatCurrency(total)}`,
       });
+
+      router.push("/dashboard/my-bookings");
     } catch (error) {
       console.error("Failed to submit booking:", error);
 
